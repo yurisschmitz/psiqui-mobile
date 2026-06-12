@@ -1,56 +1,74 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
 import 'react-native-reanimated';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from '../src/context/auth';
+import { colors } from '../src/theme';
 
-import { useColorScheme } from '@/components/useColorScheme';
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, staleTime: 30_000 },
+  },
+});
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+/** Redireciona conforme o estado de autenticação. */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (loading) return;
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!user && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (user && inAuthGroup) {
+      router.replace('/(tabs)');
     }
-  }, [loaded]);
+  }, [user, loading, segments, router]);
 
-  if (!loaded) {
-    return null;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
-  return <RootLayoutNav />;
+  return <>{children}</>;
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AuthGate>
+          <StatusBar style="dark" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.bg },
+              headerTintColor: colors.text,
+              headerStyle: { backgroundColor: colors.bg },
+              headerShadowVisible: false,
+            }}
+          >
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="psicologo/[id]" options={{ headerShown: true, headerTitle: 'Psicólogo' }} />
+            <Stack.Screen name="pagamento" options={{ headerShown: true, headerTitle: 'Pagamento' }} />
+            <Stack.Screen name="sessao/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="documentos" options={{ headerShown: true, headerTitle: 'Documentos' }} />
+            <Stack.Screen name="pagamentos" options={{ headerShown: true, headerTitle: 'Pagamentos' }} />
+            <Stack.Screen name="diario" options={{ headerShown: true, headerTitle: 'Diário de Bordo' }} />
+            <Stack.Screen name="notificacoes" options={{ headerShown: true, headerTitle: 'Notificações' }} />
+            <Stack.Screen name="perfil" options={{ headerShown: true, headerTitle: 'Meu Perfil' }} />
+          </Stack>
+        </AuthGate>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

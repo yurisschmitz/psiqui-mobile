@@ -1,21 +1,27 @@
 {
   "expo": {
-    "name": "psiqui-mobile",
-    "slug": "psiqui-mobile",
+    "name": "Psiqui",
+    "slug": "psiqui",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "psiquimobile",
-    "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/psiqui-logo.png",
+    "scheme": "psiqui",
+    "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "br.com.psiqui.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "A Psiqui usa a câmera para as sessões de terapia por vídeo.",
+        "NSMicrophoneUsageDescription": "A Psiqui usa o microfone para as sessões de terapia por vídeo."
+      }
     },
     "android": {
+      "package": "br.com.psiqui.app",
+      "permissions": ["CAMERA", "RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"],
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/psiqui-logo.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -29,11 +35,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/psiqui-logo.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
