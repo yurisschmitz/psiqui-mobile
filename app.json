@@ -4,7 +4,7 @@
     "slug": "psiqui",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/psiqui-logo.png",
+    "icon": "./assets/images/psiqui-icon.png",
     "scheme": "psiqui",
     "userInterfaceStyle": "light",
     "ios": {
@@ -17,11 +17,15 @@
     },
     "android": {
       "package": "br.com.psiqui.app",
-      "permissions": ["CAMERA", "RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"],
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/images/psiqui-logo.png"
+        "foregroundImage": "./assets/images/psiqui-adaptive-fg.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -40,7 +44,8 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

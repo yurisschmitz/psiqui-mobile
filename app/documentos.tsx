@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useClinicalDocuments } from '../src/api/hooks';
+import { useAuth } from '../src/context/auth';
 import type { DocumentoClinico, TipoDocumentoClinico } from '../src/api/types';
-import { Badge, EmptyState, OutlineButton, Skeleton } from '../src/ui';
+import { exportClinicalDocument } from '../src/utils/documentPdf';
+import { Badge, EmptyState, GradientButton, OutlineButton, Skeleton } from '../src/ui';
 import { colors, font, radius, shadow, spacing } from '../src/theme';
 
 const tipoLabel: Record<TipoDocumentoClinico, string> = {
@@ -22,7 +24,20 @@ const tipoIcon: Record<TipoDocumentoClinico, keyof typeof Ionicons.glyphMap> = {
 
 export default function DocumentsScreen() {
   const { data: docs, isLoading, refetch, isRefetching } = useClinicalDocuments();
+  const { user } = useAuth();
   const [viewing, setViewing] = useState<DocumentoClinico | null>(null);
+  const [exportingId, setExportingId] = useState<number | null>(null);
+
+  const handleExport = async (doc: DocumentoClinico) => {
+    try {
+      setExportingId(doc.id);
+      await exportClinicalDocument(doc, user?.name ?? 'Paciente');
+    } catch (e) {
+      Alert.alert('Não foi possível exportar', 'Tente novamente em instantes.');
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -58,8 +73,21 @@ export default function DocumentsScreen() {
                 <Text style={s.docMeta}>
                   {item.psicologo?.user?.name} · {format(new Date(item.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                 </Text>
+                <Badge label={tipoLabel[item.tipo]} tone="primary" />
               </View>
-              <Badge label={tipoLabel[item.tipo]} tone="primary" />
+              <Pressable
+                onPress={() => handleExport(item)}
+                disabled={exportingId === item.id}
+                hitSlop={8}
+                style={({ pressed }) => [s.shareBtn, pressed && { opacity: 0.6 }]}
+                accessibilityLabel="Exportar e compartilhar documento"
+              >
+                <Ionicons
+                  name={exportingId === item.id ? 'hourglass-outline' : 'share-outline'}
+                  size={20}
+                  color={colors.primary}
+                />
+              </Pressable>
             </Pressable>
           )}
         />
@@ -100,6 +128,15 @@ export default function DocumentsScreen() {
                 </View>
               )}
 
+              <GradientButton
+                title="Exportar / Compartilhar PDF"
+                icon="share-outline"
+                loading={exportingId === viewing.id}
+                onPress={() => handleExport(viewing)}
+              />
+              <Text style={s.exportHint}>
+                Gera um PDF assinado para enviar à empresa, RH ou onde precisar.
+              </Text>
               <OutlineButton title="Fechar" onPress={() => setViewing(null)} />
             </ScrollView>
           </View>
@@ -129,6 +166,15 @@ const s = StyleSheet.create({
   },
   docTitle: { fontWeight: '700', color: colors.text, fontSize: font.body },
   docMeta: { color: colors.muted, fontSize: font.small },
+  shareBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportHint: { color: colors.muted, fontSize: font.small, textAlign: 'center', marginTop: -spacing.sm },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',

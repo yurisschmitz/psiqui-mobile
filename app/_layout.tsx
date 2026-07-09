@@ -63,7 +63,8 @@ export default function RootLayout() {
             <Stack.Screen name="sessao/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="documentos" options={{ headerShown: true, headerTitle: 'Documentos' }} />
             <Stack.Screen name="pagamentos" options={{ headerShown: true, headerTitle: 'Pagamentos' }} />
-            <Stack.Screen name="diario" options={{ headerShown: true, headerTitle: 'Diário de Bordo' }} />
+            <Stack.Screen name="diario-bem-estar" options={{ headerShown: true, headerTitle: 'Diário de Bem-Estar' }} />
+            <Stack.Screen name="diario" options={{ headerShown: true, headerTitle: 'Anotações do psicólogo' }} />
             <Stack.Screen name="notificacoes" options={{ headerShown: true, headerTitle: 'Notificações' }} />
             <Stack.Screen name="perfil" options={{ headerShown: true, headerTitle: 'Meu Perfil' }} />
           </Stack>

@@ -10,7 +10,8 @@ const MENU = [
   { icon: 'person-outline', label: 'Meu perfil', href: '/perfil' },
   { icon: 'document-text-outline', label: 'Documentos (laudos e atestados)', href: '/documentos' },
   { icon: 'card-outline', label: 'Pagamentos', href: '/pagamentos' },
-  { icon: 'book-outline', label: 'Diário de bordo', href: '/diario' },
+  { icon: 'heart-outline', label: 'Diário de bem-estar', href: '/diario-bem-estar' },
+  { icon: 'book-outline', label: 'Anotações do psicólogo', href: '/diario' },
   { icon: 'notifications-outline', label: 'Notificações', href: '/notificacoes' },
 ] as const;
 
