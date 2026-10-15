@@ -8,6 +8,7 @@ import { useAvailableSlots, usePsychologist } from '../../src/api/hooks';
 import type { Agenda } from '../../src/api/types';
 import { Avatar, Card, GradientButton, Loading, SectionTitle } from '../../src/ui';
 import { colors, font, radius, spacing } from '../../src/theme';
+import { capitalizar, formatCRP } from '../../src/format';
 
 /** Agrupa horários por dia LOCAL do dispositivo (fuso do paciente). */
 function groupByLocalDay(slots: Agenda[]) {
@@ -16,7 +17,7 @@ function groupByLocalDay(slots: Agenda[]) {
     const d = new Date(slot.data_hora_inicio);
     const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
     if (!map.has(key)) {
-      map.set(key, { label: format(d, "EEEE, dd 'de' MMMM", { locale: ptBR }), slots: [] });
+      map.set(key, { label: capitalizar(format(d, "EEEE, dd 'de' MMMM", { locale: ptBR })), slots: [] });
     }
     map.get(key)!.slots.push(slot);
   }
@@ -36,7 +37,8 @@ export default function PsychologistDetailScreen() {
 
   if (isLoading || !p) return <Loading />;
 
-  const price = p.perfil?.valor_sessao;
+  // Mesmo padrão do back (VALOR_SESSAO_PADRAO) quando o psicólogo não definiu preço.
+  const price = p.perfil?.valor_sessao ?? 70;
   const duration = p.perfil?.duracao_sessao ?? 50;
   const rating = p.nota_media ? Number(p.nota_media).toFixed(1) : null;
   const reviews = p.avaliacoes?.filter((a) => a.comentario) ?? [];
@@ -63,7 +65,7 @@ export default function PsychologistDetailScreen() {
             <Avatar name={p.user.name} size={64} />
             <View style={{ flex: 1 }}>
               <Text style={s.name}>{p.user.name}</Text>
-              <Text style={s.crp}>{p.crp ? `CRP ${p.crp}` : 'Psicólogo(a)'}</Text>
+              <Text style={s.crp}>{p.crp ? `CRP ${formatCRP(p.crp)}` : 'Psicólogo(a)'}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                 {(p.especialidades ?? []).slice(0, 3).map((e) => (
                   <View key={e.id} style={s.tag}>
@@ -171,7 +173,7 @@ export default function PsychologistDetailScreen() {
               {format(new Date(selected.data_hora_inicio), "dd/MM 'às' HH:mm")}
             </Text>
             <Text style={s.bottomPrice}>
-              {selected.valor || price ? `R$ ${Number(selected.valor ?? price).toFixed(2)}` : 'Valor a confirmar'}
+              {`R$ ${Number(selected.valor ?? price).toFixed(2).replace('.', ',')}`}
             </Text>
           </View>
           <GradientButton title="Agendar" onPress={handleSchedule} icon="arrow-forward" style={{ minWidth: 150 }} />
@@ -199,7 +201,7 @@ const s = StyleSheet.create({
   statLabel: { fontSize: font.tiny, color: colors.muted, marginTop: 2 },
   about: { color: colors.text, lineHeight: 22, fontSize: font.body },
   timezoneNote: { color: colors.muted, fontSize: font.tiny, marginTop: -6, marginBottom: spacing.md },
-  dayLabel: { fontWeight: '700', color: colors.text, marginBottom: spacing.sm, textTransform: 'capitalize' },
+  dayLabel: { fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   slot: {
     paddingHorizontal: 18,

@@ -66,7 +66,9 @@ export default function RootLayout() {
             <Stack.Screen name="diario-bem-estar" options={{ headerShown: true, headerTitle: 'Diário de Bem-Estar' }} />
             <Stack.Screen name="diario" options={{ headerShown: true, headerTitle: 'Anotações do psicólogo' }} />
             <Stack.Screen name="notificacoes" options={{ headerShown: true, headerTitle: 'Notificações' }} />
-            <Stack.Screen name="perfil" options={{ headerShown: true, headerTitle: 'Meu Perfil' }} />
+            <Stack.Screen name="perfil" options={{ headerShown: true, headerTitle: 'Meu perfil' }} />
+            <Stack.Screen name="senha" options={{ headerShown: true, headerTitle: 'Alterar senha' }} />
+            <Stack.Screen name="suporte" options={{ headerShown: true, headerTitle: 'Ajuda e suporte' }} />
           </Stack>
         </AuthGate>
       </AuthProvider>

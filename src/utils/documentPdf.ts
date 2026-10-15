@@ -9,6 +9,7 @@ const tipoLabel: Record<TipoDocumentoClinico, string> = {
   laudo: 'Laudo',
   declaracao: 'Declaração',
   atestado: 'Atestado',
+  recibo: 'Recibo',
 };
 
 const esc = (s: string) =>

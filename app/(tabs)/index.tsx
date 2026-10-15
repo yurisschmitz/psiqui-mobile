@@ -11,6 +11,7 @@ import type { HumorTipo } from '../../src/api/types';
 import { Avatar, Card, SectionTitle } from '../../src/ui';
 import { MOODS, localDateKey } from '../../src/mood';
 import { brandGradient, colors, font, radius, shadow, spacing } from '../../src/theme';
+import { capitalizar } from '../../src/format';
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -40,7 +41,7 @@ export default function HomeScreen() {
       .filter(
         (s) =>
           s.agenda?.data_hora_inicio &&
-          new Date(s.agenda.data_hora_inicio).getTime() > now &&
+          new Date(s.agenda.data_hora_fim ?? s.agenda.data_hora_inicio).getTime() > now &&
           ['pendente', 'confirmado'].includes(s.status)
       )
       .sort(
@@ -139,18 +140,22 @@ export default function HomeScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={s.cardTitle}>{nextSession.psicologo?.user?.name ?? 'Psicólogo'}</Text>
                   <Text style={s.cardSub}>
-                    {format(new Date(nextSession.agenda!.data_hora_inicio), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    {capitalizar(format(new Date(nextSession.agenda!.data_hora_inicio), "EEEE, dd 'de' MMMM", { locale: ptBR }))}
                   </Text>
                   <Text style={[s.cardSub, { color: colors.primary, fontWeight: '700' }]}>
                     {format(new Date(nextSession.agenda!.data_hora_inicio), 'HH:mm')} (seu horário)
                   </Text>
                 </View>
                 <Pressable
+                  // A sala só abre 10 min antes; antes disso o botão leva às sessões (reagendar/cancelar).
                   onPress={() =>
-                    router.push({
-                      pathname: '/sessao/[id]',
-                      params: { id: String(nextSession.id), nome: nextSession.psicologo?.user?.name ?? 'Sessão' },
-                    })
+                    new Date(nextSession.agenda!.data_hora_inicio).getTime() - Date.now() <= 10 * 60 * 1000 &&
+                    nextSession.status === 'confirmado'
+                      ? router.push({
+                          pathname: '/sessao/[id]',
+                          params: { id: String(nextSession.id), nome: nextSession.psicologo?.user?.name ?? 'Sessão' },
+                        })
+                      : router.push('/(tabs)/sessoes')
                   }
                   style={s.joinBtn}
                 >
@@ -285,7 +290,7 @@ const s = StyleSheet.create({
   weekDayToday: { borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)' },
   weekLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, textTransform: 'capitalize' },
   cardTitle: { fontWeight: '700', color: colors.text, fontSize: font.body },
-  cardSub: { color: colors.muted, fontSize: font.small, marginTop: 2, textTransform: 'capitalize' },
+  cardSub: { color: colors.muted, fontSize: font.small, marginTop: 2 },
   link: { color: colors.primary, fontWeight: '700', fontSize: font.small },
   diaryLabel: { color: colors.muted, fontSize: font.tiny, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   diarySnippet: { color: colors.text, fontSize: font.body, lineHeight: 22 },

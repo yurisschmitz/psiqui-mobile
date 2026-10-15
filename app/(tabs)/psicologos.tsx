@@ -6,6 +6,7 @@ import { usePsychologists } from '../../src/api/hooks';
 import type { Psicologo } from '../../src/api/types';
 import { Avatar, Badge, EmptyState, Input, Skeleton } from '../../src/ui';
 import { colors, font, radius, shadow, spacing } from '../../src/theme';
+import { formatBRL, formatCRP } from '../../src/format';
 
 function PsychologistCard({ p, onPress }: { p: Psicologo; onPress: () => void }) {
   const price = p.perfil?.valor_sessao;
@@ -19,7 +20,7 @@ function PsychologistCard({ p, onPress }: { p: Psicologo; onPress: () => void })
         <Text style={s.name}>{p.user.name}</Text>
         <Text style={s.specialty} numberOfLines={1}>
           {specialty}
-          {p.crp ? ` · CRP ${p.crp}` : ''}
+          {p.crp ? ` · CRP ${formatCRP(p.crp)}` : ''}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
           {rating ? (
@@ -30,7 +31,7 @@ function PsychologistCard({ p, onPress }: { p: Psicologo; onPress: () => void })
           ) : (
             <Badge label="Novo" tone="primary" />
           )}
-          <Text style={s.price}>{price ? `R$ ${Number(price).toFixed(0)}` : 'Sob consulta'}</Text>
+          <Text style={s.price}>{formatBRL(price)}</Text>
         </View>
       </View>
       <Ionicons name="chevron-forward" size={20} color={colors.muted} />

@@ -14,12 +14,14 @@ const tipoLabel: Record<TipoDocumentoClinico, string> = {
   laudo: 'Laudo',
   declaracao: 'Declaração',
   atestado: 'Atestado',
+  recibo: 'Recibo',
 };
 
 const tipoIcon: Record<TipoDocumentoClinico, keyof typeof Ionicons.glyphMap> = {
   laudo: 'medkit-outline',
   declaracao: 'clipboard-outline',
   atestado: 'document-text-outline',
+  recibo: 'receipt-outline',
 };
 
 export default function DocumentsScreen() {

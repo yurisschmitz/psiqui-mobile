@@ -8,11 +8,13 @@ import { colors, font, radius, spacing } from '../../src/theme';
 
 const MENU = [
   { icon: 'person-outline', label: 'Meu perfil', href: '/perfil' },
-  { icon: 'document-text-outline', label: 'Documentos (laudos e atestados)', href: '/documentos' },
+  { icon: 'document-text-outline', label: 'Documentos', href: '/documentos' },
   { icon: 'card-outline', label: 'Pagamentos', href: '/pagamentos' },
   { icon: 'heart-outline', label: 'Diário de bem-estar', href: '/diario-bem-estar' },
   { icon: 'book-outline', label: 'Anotações do psicólogo', href: '/diario' },
   { icon: 'notifications-outline', label: 'Notificações', href: '/notificacoes' },
+  { icon: 'lock-closed-outline', label: 'Alterar senha', href: '/senha' },
+  { icon: 'help-buoy-outline', label: 'Ajuda e suporte', href: '/suporte' },
 ] as const;
 
 export default function MoreScreen() {

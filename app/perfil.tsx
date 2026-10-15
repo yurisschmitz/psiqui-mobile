@@ -3,12 +3,30 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../src/api/client';
 import { useAuth } from '../src/context/auth';
-import { Avatar, Badge, Card, OutlineButton } from '../src/ui';
+import { Avatar, Badge, Card, GradientButton, Input, OutlineButton } from '../src/ui';
 import { colors, font, spacing } from '../src/theme';
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [resending, setResending] = useState(false);
+  const [nome, setNome] = useState(user?.name ?? '');
+  const [telefone, setTelefone] = useState(user?.paciente?.telefone ?? '');
+  const [salvando, setSalvando] = useState(false);
+  const mudou = nome.trim() !== (user?.name ?? '') || telefone.trim() !== (user?.paciente?.telefone ?? '');
+
+  const salvar = async () => {
+    if (!nome.trim()) return Alert.alert('Nome vazio', 'Informe seu nome.');
+    try {
+      setSalvando(true);
+      await api.put('/paciente/perfil', { name: nome.trim(), telefone: telefone.trim() || null });
+      await refreshUser();
+      Alert.alert('Pronto', 'Seus dados foram atualizados.');
+    } catch (e: any) {
+      Alert.alert('Não foi possível salvar', e?.message ?? 'Tente novamente.');
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   const resendVerification = async () => {
     try {
@@ -50,27 +68,28 @@ export default function ProfileScreen() {
         </Card>
       )}
 
-      <Card style={{ gap: spacing.lg }}>
+      <Card style={{ gap: spacing.md }}>
         <Text style={s.sectionTitle}>Dados da conta</Text>
-        {[
-          { icon: 'person-outline' as const, label: 'Nome', value: user?.name ?? '—' },
-          { icon: 'mail-outline' as const, label: 'E-mail', value: user?.email ?? '—' },
-          { icon: 'shield-checkmark-outline' as const, label: 'Tipo de conta', value: 'Paciente' },
-        ].map(({ icon, label, value }) => (
-          <View key={label} style={s.row}>
-            <Ionicons name={icon} size={18} color={colors.muted} />
-            <Text style={s.rowLabel}>{label}</Text>
-            <Text style={s.rowValue} numberOfLines={1}>
-              {value}
-            </Text>
-          </View>
-        ))}
+        <Input label="Nome" value={nome} onChangeText={setNome} autoComplete="name" />
+        <Input
+          label="Telefone"
+          placeholder="(00) 00000-0000"
+          keyboardType="phone-pad"
+          value={telefone}
+          onChangeText={setTelefone}
+          autoComplete="tel"
+        />
+        <View style={s.row}>
+          <Ionicons name="mail-outline" size={18} color={colors.muted} />
+          <Text style={s.rowLabel}>E-mail</Text>
+          <Text style={s.rowValue} numberOfLines={1}>
+            {user?.email}
+          </Text>
+        </View>
+        <GradientButton title="Salvar alterações" onPress={salvar} loading={salvando} disabled={!mudou} />
       </Card>
 
-      <Text style={s.note}>
-        Para alterar seus dados cadastrais ou redefinir a senha, use a opção "Esqueci a senha" na tela de login ou
-        entre em contato com o suporte.
-      </Text>
+      <Text style={s.note}>Para trocar o e-mail, fale com o suporte em Mais → Ajuda e suporte.</Text>
 
       <OutlineButton
         title="Sair da conta"

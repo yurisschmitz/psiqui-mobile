@@ -5,7 +5,8 @@ import * as SecureStore from 'expo-secure-store';
  * - Base URL via EXPO_PUBLIC_API_URL (.env)
  * - Token Sanctum guardado no SecureStore (Keychain/Keystore)
  */
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
+// Produção por padrão (a API responde em /api/api na HostGator); dev sobrescreve no .env.
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://psiqui.com.br/api/api';
 
 const TOKEN_KEY = 'psiqui_auth_token';
 let cachedToken: string | null = null;
