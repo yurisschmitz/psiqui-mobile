@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, PermissionsAndroid, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,19 +9,32 @@ import { colors, font, spacing } from '../../src/theme';
 /**
  * Sessão de vídeo (v1): abre a sala da plataforma web dentro do app,
  * injetando o token de autenticação no localStorage antes do carregamento.
- * A página web cuida do Twilio (câmera, microfone, conexão).
+ * A página web cuida do TRTC (câmera, microfone, conexão).
  */
-const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'http://10.0.2.2:5173';
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://psiqui.com.br';
+
+// No Android a WebView só recebe a câmera se o APP tiver a permissão em tempo de
+// execução; sem isso o getUserMedia falha com NotReadableError e não há vídeo.
+async function pedirCameraMicrofone(): Promise<boolean> {
+  if (Platform.OS !== 'android') return true;
+  // Um pedido por vez: o requestMultiple às vezes não resolve depois do 2º diálogo.
+  const cam = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
+  const mic = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+  return cam === PermissionsAndroid.RESULTS.GRANTED && mic === PermissionsAndroid.RESULTS.GRANTED;
+}
 
 export default function VideoSessionScreen() {
   const router = useRouter();
   const { id, nome } = useLocalSearchParams<{ id: string; nome?: string }>();
   const [token, setTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [semPermissao, setSemPermissao] = useState(false);
+  const saiu = useRef(false);
 
   useEffect(() => {
-    getToken().then((t) => {
+    Promise.all([getToken(), pedirCameraMicrofone()]).then(([t, ok]) => {
       setTokenState(t);
+      setSemPermissao(!ok);
       setLoading(false);
     });
   }, []);
@@ -30,9 +43,10 @@ export default function VideoSessionScreen() {
   const url = `${WEB_URL}/video-session-patient/${id}/${patientName}`;
 
   // Injeta o token Sanctum no localStorage da SPA antes do carregamento
-  const injectAuth = token
-    ? `window.localStorage.setItem('auth_token', ${JSON.stringify(token)}); true;`
-    : 'true;';
+  // __PSIQUI_APP__ faz a página trocar "navegador" por "celular" nos avisos.
+  const injectAuth = `window.__PSIQUI_APP__ = true;${
+    token ? ` window.localStorage.setItem('auth_token', ${JSON.stringify(token)});` : ''
+  } true;`;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0F172A' }}>
@@ -50,6 +64,13 @@ export default function VideoSessionScreen() {
         <View style={s.center}>
           <ActivityIndicator size="large" color="#60A5FA" />
         </View>
+      ) : semPermissao ? (
+        <View style={s.center}>
+          <Ionicons name="videocam-off-outline" size={40} color="#94A3B8" />
+          <Text style={[s.loadingText, { textAlign: 'center', paddingHorizontal: spacing.xl }]}>
+            Sem acesso à câmera e ao microfone. Libere nas configurações do celular e entre de novo.
+          </Text>
+        </View>
       ) : (
         <WebView
           source={{ uri: url }}
@@ -60,6 +81,13 @@ export default function VideoSessionScreen() {
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           mediaCapturePermissionGrantType="grant"
+          // Ao encerrar, a página web volta ao painel: aqui isso significa fechar a tela.
+          onNavigationStateChange={(nav) => {
+            if (!saiu.current && /\/(patient-dashboard|login)(\/|$|\?)/.test(nav.url)) {
+              saiu.current = true;
+              router.back();
+            }
+          }}
           startInLoadingState
           renderLoading={() => (
             <View style={[s.center, StyleSheet.absoluteFill, { backgroundColor: '#0F172A' }]}>

@@ -11,6 +11,7 @@ export interface User {
   email: string;
   email_verified_at?: string | null;
   roles: Role[];
+  paciente?: { id: number; telefone?: string | null; data_nascimento?: string | null } | null;
 }
 
 export interface Especialidade {
@@ -59,7 +60,7 @@ export interface Agenda {
   valor?: number | string | null;
 }
 
-export type StatusAgendamento = 'pendente' | 'confirmado' | 'realizado' | 'cancelado' | 'falta_paciente';
+export type StatusAgendamento = 'pendente' | 'confirmado' | 'realizado' | 'cancelado' | 'faltou';
 
 export interface Agendamento {
   id: number;
@@ -70,6 +71,7 @@ export interface Agendamento {
   agenda?: Agenda;
   psicologo?: Psicologo;
   pagamento?: Pagamento;
+  avaliacao?: Avaliacao | null;
 }
 
 export interface Pagamento {
@@ -77,19 +79,26 @@ export interface Pagamento {
   agendamento_id: number;
   valor: number | string;
   tipo: string;
-  status: 'pendente' | 'pago' | 'cancelado';
+  status: 'pendente' | 'pago' | 'cancelado' | 'estornado';
   data_pagamento?: string | null;
-  iugu_invoice_id?: string | null;
   created_at: string;
   agendamento?: Agendamento;
 }
 
-export interface Fatura {
+// Cobrança Asaas devolvida ao agendar. null = sem gateway (já confirmada).
+export interface Cobranca {
   id: string;
-  status: string; // pending | paid | canceled
-  total_cents?: number;
-  secure_url?: string | null;
-  pix?: { qrcode?: string | null; qrcode_text?: string | null } | null;
+  tipo: 'pix' | 'credit_card';
+  status: string; // 'pendente' | 'pago'
+  pix?: { qr_code_base64: string | null; copia_e_cola: string | null; expira_em: string | null };
+}
+
+export interface Cartao {
+  nome: string;
+  numero: string;
+  mes: string;
+  ano: string;
+  cvv: string;
 }
 
 export type HumorTipo = 'Ótimo' | 'Bem' | 'Neutro' | 'Cansado' | 'Estressado' | 'Triste' | 'Ansioso';
@@ -110,7 +119,7 @@ export interface DiarioBordo {
   visivel_paciente: boolean;
 }
 
-export type TipoDocumentoClinico = 'laudo' | 'declaracao' | 'atestado';
+export type TipoDocumentoClinico = 'laudo' | 'declaracao' | 'atestado' | 'recibo';
 
 export interface DocumentoClinico {
   id: number;

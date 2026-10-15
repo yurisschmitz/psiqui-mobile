@@ -9,17 +9,9 @@ import { useAuth } from '../../src/context/auth';
 import { useMoods, useNotifications, useSaveMood, useSessions } from '../../src/api/hooks';
 import type { HumorTipo } from '../../src/api/types';
 import { Avatar, Card, SectionTitle } from '../../src/ui';
+import { MOODS, localDateKey } from '../../src/mood';
 import { brandGradient, colors, font, radius, shadow, spacing } from '../../src/theme';
-
-const MOODS: { tipo: HumorTipo; emoji: string }[] = [
-  { tipo: 'Ótimo', emoji: '😄' },
-  { tipo: 'Bem', emoji: '🙂' },
-  { tipo: 'Neutro', emoji: '😐' },
-  { tipo: 'Cansado', emoji: '😴' },
-  { tipo: 'Estressado', emoji: '😣' },
-  { tipo: 'Triste', emoji: '😢' },
-  { tipo: 'Ansioso', emoji: '😟' },
-];
+import { capitalizar } from '../../src/format';
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -27,10 +19,6 @@ const greeting = () => {
   if (h < 18) return 'Boa tarde';
   return 'Boa noite';
 };
-
-/** Data local (do dispositivo) em YYYY-MM-DD. */
-const localDateKey = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -53,7 +41,7 @@ export default function HomeScreen() {
       .filter(
         (s) =>
           s.agenda?.data_hora_inicio &&
-          new Date(s.agenda.data_hora_inicio).getTime() > now &&
+          new Date(s.agenda.data_hora_fim ?? s.agenda.data_hora_inicio).getTime() > now &&
           ['pendente', 'confirmado'].includes(s.status)
       )
       .sort(
@@ -152,18 +140,22 @@ export default function HomeScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={s.cardTitle}>{nextSession.psicologo?.user?.name ?? 'Psicólogo'}</Text>
                   <Text style={s.cardSub}>
-                    {format(new Date(nextSession.agenda!.data_hora_inicio), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    {capitalizar(format(new Date(nextSession.agenda!.data_hora_inicio), "EEEE, dd 'de' MMMM", { locale: ptBR }))}
                   </Text>
                   <Text style={[s.cardSub, { color: colors.primary, fontWeight: '700' }]}>
                     {format(new Date(nextSession.agenda!.data_hora_inicio), 'HH:mm')} (seu horário)
                   </Text>
                 </View>
                 <Pressable
+                  // A sala só abre 10 min antes; antes disso o botão leva às sessões (reagendar/cancelar).
                   onPress={() =>
-                    router.push({
-                      pathname: '/sessao/[id]',
-                      params: { id: String(nextSession.id), nome: nextSession.psicologo?.user?.name ?? 'Sessão' },
-                    })
+                    new Date(nextSession.agenda!.data_hora_inicio).getTime() - Date.now() <= 10 * 60 * 1000 &&
+                    nextSession.status === 'confirmado'
+                      ? router.push({
+                          pathname: '/sessao/[id]',
+                          params: { id: String(nextSession.id), nome: nextSession.psicologo?.user?.name ?? 'Sessão' },
+                        })
+                      : router.push('/(tabs)/sessoes')
                   }
                   style={s.joinBtn}
                 >
@@ -181,6 +173,41 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {/* Diário de Bem-Estar */}
+        <View>
+          <SectionTitle
+            title="Diário de Bem-Estar"
+            action={
+              <Pressable onPress={() => router.push('/diario-bem-estar')} hitSlop={8}>
+                <Text style={s.link}>Ver diário →</Text>
+              </Pressable>
+            }
+          />
+          <Pressable onPress={() => router.push('/diario-bem-estar')}>
+            <Card>
+              {todayMood?.nota ? (
+                <View style={{ gap: 6 }}>
+                  <Text style={s.diaryLabel}>Sua entrada de hoje</Text>
+                  <Text style={s.diarySnippet} numberOfLines={2}>
+                    {todayMood.nota}
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                  <View style={s.diaryIcon}>
+                    <Ionicons name="heart-outline" size={20} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.cardTitle}>Como foi o seu dia?</Text>
+                    <Text style={s.diarySub}>Registre uma reflexão e acompanhe sua evolução.</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                </View>
+              )}
+            </Card>
+          </Pressable>
+        </View>
+
         {/* Atalhos */}
         <View>
           <SectionTitle title="Acesso rápido" />
@@ -189,7 +216,7 @@ export default function HomeScreen() {
               [
                 { icon: 'document-text-outline', label: 'Documentos', href: '/documentos' },
                 { icon: 'card-outline', label: 'Pagamentos', href: '/pagamentos' },
-                { icon: 'book-outline', label: 'Diário', href: '/diario' },
+                { icon: 'book-outline', label: 'Anotações', href: '/diario' },
                 { icon: 'person-outline', label: 'Perfil', href: '/perfil' },
               ] as const
             ).map(({ icon, label, href }) => (
@@ -263,7 +290,19 @@ const s = StyleSheet.create({
   weekDayToday: { borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)' },
   weekLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, textTransform: 'capitalize' },
   cardTitle: { fontWeight: '700', color: colors.text, fontSize: font.body },
-  cardSub: { color: colors.muted, fontSize: font.small, marginTop: 2, textTransform: 'capitalize' },
+  cardSub: { color: colors.muted, fontSize: font.small, marginTop: 2 },
+  link: { color: colors.primary, fontWeight: '700', fontSize: font.small },
+  diaryLabel: { color: colors.muted, fontSize: font.tiny, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  diarySnippet: { color: colors.text, fontSize: font.body, lineHeight: 22 },
+  diarySub: { color: colors.muted, fontSize: font.small, marginTop: 2 },
+  diaryIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   joinBtn: {
     width: 44,
     height: 44,

@@ -5,8 +5,9 @@ import type {
   Agendamento,
   AppNotification,
   DiarioBordo,
+  Cartao,
+  Cobranca,
   DocumentoClinico,
-  Fatura,
   Humor,
   HumorTipo,
   Pagamento,
@@ -27,7 +28,11 @@ export const usePsychologists = (search: string) =>
 export const usePsychologist = (id: number) =>
   useQuery({
     queryKey: ['psicologo', id],
-    queryFn: () => api.get<Psicologo>(`/paciente/psicologos/${id}`),
+    // O back devolve via PsicologoResource, embrulhado em { data }.
+    queryFn: async () => {
+      const r = await api.get<{ data: Psicologo } | Psicologo>(`/paciente/psicologos/${id}`);
+      return 'data' in r ? r.data : r;
+    },
     enabled: !!id,
   });
 
@@ -54,43 +59,55 @@ export const useCreateReview = () => {
   });
 };
 
-// ---------- Pagamento (agendamento + fatura Iugu) ----------
+// ---------- Agendamento + cobrança (Asaas) ----------
 export interface CreateBookingPayload {
   agenda_id: number;
-  nome: string;
-  email: string;
-  return_url: string;
   tipo_pagamento: 'pix' | 'credit_card';
+  cpf?: string;
+  cartao?: Cartao;
 }
+
+const invalidarSessoes = (qc: ReturnType<typeof useQueryClient>) =>
+  ['agendamentos', 'agendas', 'pagamentos'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
 export const useCreateBooking = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateBookingPayload) =>
-      api.post<{ agendamento: Agendamento; fatura: Fatura }>('/paciente/agendamentos', data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['agendamentos'] });
-      qc.invalidateQueries({ queryKey: ['agendas'] });
-    },
+      api.post<{ agendamento: Agendamento; cobranca: Cobranca | null }>('/paciente/agendamentos', data),
+    onSuccess: () => invalidarSessoes(qc),
   });
 };
 
-export const useInvoiceStatus = (faturaId: string | null, enabled: boolean) =>
+// Status LOCAL do pagamento (atualizado pelo webhook do Asaas) — polling do PIX.
+export const usePaymentStatus = (paymentId: string | null, enabled: boolean) =>
   useQuery({
-    queryKey: ['fatura', faturaId],
-    queryFn: () => api.get<Fatura>(`/paciente/fatura/${faturaId}/consulta`),
-    enabled: enabled && !!faturaId,
+    queryKey: ['pagamento-status', paymentId],
+    queryFn: () => api.get<{ status: string }>(`/paciente/pagamento/${paymentId}/status`),
+    enabled: enabled && !!paymentId,
     refetchInterval: (q) => {
-      const s = q.state.data?.status;
-      return s === 'paid' || s === 'canceled' ? false : 4000;
+      const st = q.state.data?.status;
+      return st === 'pago' || st === 'cancelado' ? false : 4000;
     },
   });
 
-export const useConfirmDevPayment = () => {
+// Cancelar: >48h antes estorna; dentro de 48h não há reembolso (regra no back).
+export const useCancelSession = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (invoiceId: string) => api.post('/paciente/pagamentos/confirmar-dev', { invoice_id: invoiceId }),
-    onSuccess: (_, id) => qc.invalidateQueries({ queryKey: ['fatura', id] }),
+    mutationFn: (id: number) =>
+      api.put<{ message: string; estornado: boolean }>(`/paciente/agendamentos/${id}`, { status: 'cancelado' }),
+    onSuccess: () => invalidarSessoes(qc),
+  });
+};
+
+// Reagendar (até 24h antes): troca o horário mantendo o pagamento.
+export const useRescheduleSession = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, agendaId }: { id: number; agendaId: number }) =>
+      api.put(`/paciente/agendamentos/${id}/reagendar`, { agenda_id: agendaId }),
+    onSuccess: () => invalidarSessoes(qc),
   });
 };
 
@@ -142,3 +159,15 @@ export const useMarkAllNotificationsRead = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificacoes'] }),
   });
 };
+
+// ---------- Conta ----------
+export const useChangePassword = () =>
+  useMutation({
+    mutationFn: (data: { senha_atual: string; password: string; password_confirmation: string }) =>
+      api.put<{ message: string }>('/senha', data),
+  });
+
+export const useSendSupport = () =>
+  useMutation({
+    mutationFn: (data: { assunto: string; mensagem: string }) => api.post<{ message: string }>('/suporte', data),
+  });

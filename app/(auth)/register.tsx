@@ -54,8 +54,8 @@ export default function RegisterScreen() {
       Alert.alert('Atenção', 'Preencha nome, e-mail e senha.');
       return;
     }
-    if (password.length < 6) {
-      Alert.alert('Atenção', 'A senha deve ter no mínimo 6 caracteres.');
+    if (password.length < 8) {
+      Alert.alert('Atenção', 'A senha deve ter no mínimo 8 caracteres.');
       return;
     }
     if (password !== confirm) {
@@ -117,7 +117,7 @@ export default function RegisterScreen() {
           <Input
             label="Senha"
             icon="lock-closed-outline"
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Mínimo 8 caracteres"
             secureTextEntry={!show}
             rightIcon={show ? 'eye-off-outline' : 'eye-outline'}
             onRightIconPress={() => setShow(!show)}

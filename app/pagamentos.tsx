@@ -7,8 +7,8 @@ import { usePayments } from '../src/api/hooks';
 import { Badge, EmptyState, Skeleton } from '../src/ui';
 import { colors, font, radius, shadow, spacing } from '../src/theme';
 
-const statusTone = { pago: 'success', pendente: 'warning', cancelado: 'danger' } as const;
-const statusLabel = { pago: 'Pago', pendente: 'Pendente', cancelado: 'Cancelado' } as const;
+const statusTone = { pago: 'success', pendente: 'warning', cancelado: 'danger', estornado: 'muted' } as const;
+const statusLabel = { pago: 'Pago', pendente: 'Pendente', cancelado: 'Cancelado', estornado: 'Devolvido' } as const;
 
 export default function PaymentsScreen() {
   const { data: payments, isLoading, refetch, isRefetching } = usePayments();

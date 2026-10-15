@@ -1,20 +1,30 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import { useAuth } from '../src/context/auth';
-import { useConfirmDevPayment, useCreateBooking, useInvoiceStatus } from '../src/api/hooks';
-import type { Fatura } from '../src/api/types';
-import { Card, GradientButton, Loading, OutlineButton } from '../src/ui';
+import { useCreateBooking, usePaymentStatus } from '../src/api/hooks';
+import type { Cartao } from '../src/api/types';
+import { Card, GradientButton, Input, Loading, OutlineButton } from '../src/ui';
 import { colors, font, radius, spacing } from '../src/theme';
 
-type Step = 'method' | 'pix' | 'card' | 'success';
+type Step = 'method' | 'card' | 'cpf' | 'pix' | 'processing' | 'success';
+type Tipo = 'pix' | 'credit_card';
 
+const digitos = (v: string) => v.replace(/\D/g, '');
+const mascaraCartao = (v: string) => digitos(v).slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ');
+const mascaraCpf = (v: string) =>
+  digitos(v)
+    .slice(0, 11)
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+
+// Mesmo fluxo da web: método → (CPF só na 1ª vez) → PIX com polling ou cartão.
+// Sem gateway configurado o back devolve cobranca = null e a sessão já sai confirmada.
 export default function PaymentScreen() {
   const router = useRouter();
-  const { user } = useAuth();
   const { agendaId, nome, valor, quando } = useLocalSearchParams<{
     agendaId: string;
     nome: string;
@@ -22,51 +32,76 @@ export default function PaymentScreen() {
     quando: string;
   }>();
 
-  const [method, setMethod] = useState<'pix' | 'credit_card'>('pix');
   const [step, setStep] = useState<Step>('method');
-  const [fatura, setFatura] = useState<Fatura | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [pixCodigo, setPixCodigo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [cartao, setCartao] = useState({ numero: '', nome: '', mes: '', ano: '', cvv: '' });
+  const [cpf, setCpf] = useState('');
+  const pendente = useRef<{ tipo: Tipo; cartao?: Cartao } | null>(null);
 
   const createBooking = useCreateBooking();
-  const confirmDev = useConfirmDevPayment();
-  const isDev = !!fatura?.id?.startsWith('dev_');
-  const { data: status } = useInvoiceStatus(fatura?.id ?? null, step === 'pix' || step === 'card');
+  const { data: status } = usePaymentStatus(paymentId, step === 'pix' || step === 'processing');
 
-  // Pagamento confirmado via polling
   useEffect(() => {
-    if (status?.status === 'paid') setStep('success');
+    if (status?.status === 'pago') setStep('success');
   }, [status?.status]);
 
   const valorNum = Number(valor) || 0;
   const valorFmt = valorNum > 0 ? `R$ ${valorNum.toFixed(2).replace('.', ',')}` : '';
 
-  const handleConfirm = () => {
+  const cobrar = (tipo: Tipo, dadosCartao?: Cartao, cpfInformado?: string) => {
+    setErro(null);
     createBooking.mutate(
       {
         agenda_id: Number(agendaId),
-        nome: user?.name ?? 'Paciente',
-        email: user?.email ?? '',
-        return_url: 'https://psiqui.com.br/pagamento-concluido',
-        tipo_pagamento: method,
+        tipo_pagamento: tipo,
+        ...(dadosCartao ? { cartao: dadosCartao } : {}),
+        ...(cpfInformado ? { cpf: cpfInformado } : {}),
       },
       {
-        onSuccess: (res) => {
-          setFatura(res.fatura);
-          if (method === 'pix') {
+        onSuccess: ({ cobranca }) => {
+          if (!cobranca || cobranca.status === 'pago') return setStep('success');
+          setPaymentId(cobranca.id);
+          if (tipo === 'pix') {
+            setPixCodigo(cobranca.pix?.copia_e_cola ?? null);
             setStep('pix');
           } else {
-            setStep('card');
-            if (res.fatura.secure_url) Linking.openURL(res.fatura.secure_url);
+            setStep('processing');
           }
         },
-        onError: (e: any) => Alert.alert('Não foi possível agendar', e?.message ?? 'Tente novamente.'),
+        onError: (e: any) => {
+          const body = e?.data;
+          if (body?.precisa_cpf) {
+            pendente.current = { tipo, cartao: dadosCartao };
+            return setStep('cpf');
+          }
+          setErro(body?.errors?.cpf?.[0] ?? e?.message ?? 'Não foi possível processar o pagamento.');
+          setStep(tipo === 'credit_card' ? 'card' : 'method');
+        },
       }
     );
   };
 
+  const pagarComCartao = () => {
+    const numero = digitos(cartao.numero);
+    const mes = Number(cartao.mes);
+    const ano = Number(cartao.ano);
+    const hoje = new Date();
+    if (numero.length < 13) return setErro('Número do cartão incompleto.');
+    if (!cartao.nome.trim()) return setErro('Informe o nome como está impresso no cartão.');
+    if (cartao.mes.length !== 2 || mes < 1 || mes > 12) return setErro('Mês de validade inválido (01 a 12).');
+    if (cartao.ano.length !== 4) return setErro('Ano de validade com 4 dígitos (ex.: 2030).');
+    if (ano < hoje.getFullYear() || (ano === hoje.getFullYear() && mes < hoje.getMonth() + 1))
+      return setErro('Este cartão está vencido.');
+    if (cartao.cvv.length < 3) return setErro('CVV incompleto (3 ou 4 dígitos no verso).');
+    cobrar('credit_card', { nome: cartao.nome.trim(), numero, mes: cartao.mes, ano: cartao.ano, cvv: cartao.cvv });
+  };
+
   const copyPix = async () => {
-    if (!fatura?.pix?.qrcode_text) return;
-    await Clipboard.setStringAsync(fatura.pix.qrcode_text);
+    if (!pixCodigo) return;
+    await Clipboard.setStringAsync(pixCodigo);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -87,99 +122,168 @@ export default function PaymentScreen() {
         </Card>
       )}
 
-      {/* Escolha do método */}
+      {erro && (
+        <View style={s.erro}>
+          <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
+          <Text style={s.erroText}>{erro}</Text>
+        </View>
+      )}
+
+      {/* Escolha do método: tocar já segue (PIX cobra; cartão abre o formulário) */}
       {step === 'method' && (
         <>
+          <Text style={s.question}>Como você quer pagar?</Text>
           <View style={{ gap: spacing.md }}>
             {(
               [
-                { k: 'pix', icon: 'qr-code-outline', title: 'PIX', sub: 'Aprovação em segundos' },
-                { k: 'credit_card', icon: 'card-outline', title: 'Cartão de crédito', sub: 'Pagamento em ambiente seguro' },
+                { k: 'pix', icon: 'qr-code-outline', title: 'PIX', sub: 'Aprovação na hora' },
+                { k: 'credit_card', icon: 'card-outline', title: 'Cartão de crédito', sub: 'Cobrança única' },
               ] as const
-            ).map(({ k, icon, title, sub }) => {
-              const active = method === k;
-              return (
-                <Pressable key={k} onPress={() => setMethod(k)} style={[s.method, active && s.methodActive]}>
-                  <View style={[s.methodIcon, active && { backgroundColor: colors.primary }]}>
-                    <Ionicons name={icon} size={22} color={active ? '#fff' : colors.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.methodTitle}>{title}</Text>
-                    <Text style={s.methodSub}>{sub}</Text>
-                  </View>
-                  <Ionicons
-                    name={active ? 'radio-button-on' : 'radio-button-off'}
-                    size={22}
-                    color={active ? colors.primary : colors.border}
-                  />
-                </Pressable>
-              );
-            })}
+            ).map(({ k, icon, title, sub }) => (
+              <Pressable
+                key={k}
+                disabled={createBooking.isPending}
+                onPress={() => {
+                  setErro(null);
+                  if (k === 'pix') cobrar('pix');
+                  else setStep('card');
+                }}
+                style={({ pressed }) => [s.method, pressed && s.methodActive]}
+              >
+                <View style={s.methodIcon}>
+                  <Ionicons name={icon} size={22} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.methodTitle}>{title}</Text>
+                  <Text style={s.methodSub}>{sub}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+              </Pressable>
+            ))}
           </View>
-
-          <GradientButton title="Confirmar e pagar" onPress={handleConfirm} loading={createBooking.isPending} />
-          <Text style={s.secure}>🔒 Pagamento processado com segurança pela Iugu</Text>
+          {createBooking.isPending && <Loading />}
+          <Text style={s.secure}>
+            Reagendar é grátis até 24 horas antes. Cancelando com mais de 48 horas, o valor volta integralmente.
+          </Text>
+          <Text style={s.secure}>🔒 Pagamento processado com segurança pelo Asaas</Text>
         </>
       )}
 
+      {/* Cartão */}
+      {step === 'card' && (
+        <Card style={{ gap: spacing.md }}>
+          <Input
+            label="Número do cartão"
+            placeholder="0000 0000 0000 0000"
+            keyboardType="number-pad"
+            autoComplete="cc-number"
+            value={cartao.numero}
+            onChangeText={(v) => setCartao((c) => ({ ...c, numero: mascaraCartao(v) }))}
+          />
+          <Input
+            label="Nome impresso no cartão"
+            placeholder="Como está no cartão"
+            autoCapitalize="characters"
+            autoComplete="cc-name"
+            value={cartao.nome}
+            onChangeText={(v) => setCartao((c) => ({ ...c, nome: v }))}
+          />
+          <View style={{ flexDirection: 'row', gap: spacing.md }}>
+            <View style={{ flex: 1 }}>
+              <Input
+                label="Mês"
+                placeholder="MM"
+                keyboardType="number-pad"
+                maxLength={2}
+                value={cartao.mes}
+                onChangeText={(v) => setCartao((c) => ({ ...c, mes: digitos(v) }))}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Input
+                label="Ano"
+                placeholder="AAAA"
+                keyboardType="number-pad"
+                maxLength={4}
+                value={cartao.ano}
+                onChangeText={(v) => setCartao((c) => ({ ...c, ano: digitos(v) }))}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Input
+                label="CVV"
+                placeholder="123"
+                keyboardType="number-pad"
+                maxLength={4}
+                secureTextEntry
+                value={cartao.cvv}
+                onChangeText={(v) => setCartao((c) => ({ ...c, cvv: digitos(v) }))}
+              />
+            </View>
+          </View>
+          <GradientButton title={`Pagar ${valorFmt}`.trim()} onPress={pagarComCartao} loading={createBooking.isPending} />
+          <OutlineButton
+            title="Voltar"
+            onPress={() => {
+              setErro(null);
+              setStep('method');
+            }}
+          />
+        </Card>
+      )}
+
+      {/* CPF: o Asaas exige na 1ª cobrança */}
+      {step === 'cpf' && (
+        <Card style={{ gap: spacing.md }}>
+          <Text style={s.pixTitle}>Só falta seu CPF</Text>
+          <Text style={s.pixSub}>O Asaas pede o CPF de quem paga. Pedimos só nesta primeira vez.</Text>
+          <Input
+            label="CPF"
+            placeholder="000.000.000-00"
+            keyboardType="number-pad"
+            value={cpf}
+            onChangeText={(v) => setCpf(mascaraCpf(v))}
+          />
+          <GradientButton
+            title="Continuar"
+            disabled={digitos(cpf).length !== 11}
+            loading={createBooking.isPending}
+            onPress={() => pendente.current && cobrar(pendente.current.tipo, pendente.current.cartao, digitos(cpf))}
+          />
+        </Card>
+      )}
+
+      {/* Cartão em análise */}
+      {step === 'processing' && (
+        <Card style={{ alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xxl }}>
+          <Ionicons name="card-outline" size={48} color={colors.primary} />
+          <Text style={s.pixSub}>Confirmando o pagamento com a operadora do cartão…</Text>
+          <Loading />
+        </Card>
+      )}
+
       {/* PIX */}
-      {step === 'pix' && fatura && (
+      {step === 'pix' && (
         <Card style={{ alignItems: 'center', gap: spacing.lg }}>
           <Text style={s.pixTitle}>Pague com PIX</Text>
           <Text style={s.pixSub}>Escaneie o QR Code no app do seu banco ou use o copia-e-cola.</Text>
-
-          {fatura.pix?.qrcode_text ? (
+          {pixCodigo && (
             <View style={s.qrWrap}>
-              <QRCode value={fatura.pix.qrcode_text} size={200} />
-            </View>
-          ) : (
-            <View style={[s.qrWrap, { width: 232, height: 232, alignItems: 'center', justifyContent: 'center' }]}>
-              <Ionicons name="qr-code-outline" size={48} color={colors.muted} />
-              {isDev && <Text style={{ color: colors.muted, fontSize: font.tiny, textAlign: 'center', marginTop: 8 }}>Modo dev — use o botão abaixo</Text>}
+              <QRCode value={pixCodigo} size={200} />
             </View>
           )}
-
-          {fatura.pix?.qrcode_text && (
+          {pixCodigo && (
             <Pressable onPress={copyPix} style={s.copyBtn}>
               <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color={colors.primary} />
               <Text style={s.copyText}>{copied ? 'Copiado!' : 'Copiar código PIX'}</Text>
             </Pressable>
           )}
-
           <View style={s.waiting}>
             <Loading />
             <Text style={{ color: colors.muted, fontSize: font.small, marginTop: -spacing.lg }}>
-              Aguardando confirmação do pagamento...
+              Aguardando a confirmação do pagamento…
             </Text>
           </View>
-
-          {isDev && (
-            <OutlineButton
-              title="Simular pagamento (dev)"
-              onPress={() => fatura.id && confirmDev.mutate(fatura.id)}
-              loading={confirmDev.isPending}
-              style={{ alignSelf: 'stretch' }}
-            />
-          )}
-        </Card>
-      )}
-
-      {/* Cartão */}
-      {step === 'card' && fatura && (
-        <Card style={{ alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xxl }}>
-          <Ionicons name="card-outline" size={48} color={colors.primary} />
-          <Text style={s.pixSub}>
-            Conclua o pagamento na página segura que abrimos no navegador. Esta tela confirma automaticamente.
-          </Text>
-          {fatura.secure_url && (
-            <OutlineButton
-              title="Abrir página de pagamento"
-              icon="open-outline"
-              onPress={() => Linking.openURL(fatura.secure_url!)}
-              style={{ alignSelf: 'stretch' }}
-            />
-          )}
-          <Text style={{ color: colors.muted, fontSize: font.small }}>Aguardando confirmação...</Text>
         </Card>
       )}
 
@@ -189,10 +293,9 @@ export default function PaymentScreen() {
           <View style={s.successIcon}>
             <Ionicons name="checkmark" size={42} color="#fff" />
           </View>
-          <Text style={s.successTitle}>Sessão confirmada! 🎉</Text>
-          <Text style={s.pixSub}>
-            Sua sessão com {nome} está garantida. Enviamos os detalhes por e-mail.
-          </Text>
+          <Text style={s.successTitle}>Sessão confirmada!</Text>
+          <Text style={s.successWhen}>{quando}</Text>
+          <Text style={s.pixSub}>Sua sessão com {nome} está garantida. Enviamos os detalhes por e-mail.</Text>
           <GradientButton
             title="Ver minhas sessões"
             onPress={() => router.replace('/(tabs)/sessoes')}
@@ -221,6 +324,17 @@ const s = StyleSheet.create({
     borderColor: colors.border,
   },
   methodActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  question: { fontWeight: '700', color: colors.text, fontSize: font.body },
+  erro: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.dangerBg,
+  },
+  erroText: { color: colors.danger, flex: 1, fontSize: font.small },
+  successWhen: { fontWeight: '700', color: colors.text, fontSize: font.body },
   methodIcon: {
     width: 44,
     height: 44,
