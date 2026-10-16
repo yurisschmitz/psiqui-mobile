@@ -6,7 +6,7 @@ import { usePsychologists } from '../../src/api/hooks';
 import type { Psicologo } from '../../src/api/types';
 import { Avatar, Badge, EmptyState, Input, Skeleton } from '../../src/ui';
 import { colors, font, radius, shadow, spacing } from '../../src/theme';
-import { formatBRL, formatCRP } from '../../src/format';
+import { formatBRL, formatCRP, storageUrl } from '../../src/format';
 
 function PsychologistCard({ p, onPress }: { p: Psicologo; onPress: () => void }) {
   const price = p.perfil?.valor_sessao;
@@ -15,7 +15,7 @@ function PsychologistCard({ p, onPress }: { p: Psicologo; onPress: () => void })
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [s.card, pressed && { opacity: 0.85 }]}>
-      <Avatar name={p.user.name} size={52} />
+      <Avatar name={p.user.name} size={52} uri={storageUrl(p.perfil?.foto_perfil)} />
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={s.name}>{p.user.name}</Text>
         <Text style={s.specialty} numberOfLines={1}>

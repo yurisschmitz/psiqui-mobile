@@ -8,7 +8,7 @@ import { useAvailableSlots, usePsychologist } from '../../src/api/hooks';
 import type { Agenda } from '../../src/api/types';
 import { Avatar, Card, GradientButton, Loading, SectionTitle } from '../../src/ui';
 import { colors, font, radius, spacing } from '../../src/theme';
-import { capitalizar, formatCRP } from '../../src/format';
+import { capitalizar, formatCRP, storageUrl } from '../../src/format';
 
 /** Agrupa horários por dia LOCAL do dispositivo (fuso do paciente). */
 function groupByLocalDay(slots: Agenda[]) {
@@ -62,7 +62,7 @@ export default function PsychologistDetailScreen() {
         {/* Cabeçalho do perfil */}
         <Card>
           <View style={{ flexDirection: 'row', gap: spacing.md }}>
-            <Avatar name={p.user.name} size={64} />
+            <Avatar name={p.user.name} size={64} uri={storageUrl(p.perfil?.foto_perfil)} />
             <View style={{ flex: 1 }}>
               <Text style={s.name}>{p.user.name}</Text>
               <Text style={s.crp}>{p.crp ? `CRP ${formatCRP(p.crp)}` : 'Psicólogo(a)'}</Text>

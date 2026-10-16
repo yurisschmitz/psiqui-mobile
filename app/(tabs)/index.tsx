@@ -11,7 +11,7 @@ import type { HumorTipo } from '../../src/api/types';
 import { Avatar, Card, SectionTitle } from '../../src/ui';
 import { MOODS, localDateKey } from '../../src/mood';
 import { brandGradient, colors, font, radius, shadow, spacing } from '../../src/theme';
-import { capitalizar } from '../../src/format';
+import { capitalizar, storageUrl } from '../../src/format';
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -136,7 +136,7 @@ export default function HomeScreen() {
           {nextSession ? (
             <Card>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Avatar name={nextSession.psicologo?.user?.name ?? 'P'} size={48} />
+                <Avatar name={nextSession.psicologo?.user?.name ?? 'P'} size={48} uri={storageUrl(nextSession.psicologo?.perfil?.foto_perfil)} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.cardTitle}>{nextSession.psicologo?.user?.name ?? 'Psicólogo'}</Text>
                   <Text style={s.cardSub}>

@@ -27,7 +27,7 @@ export interface PsicologoPerfil {
   idiomas?: string | null;
   valor_sessao?: number | null;
   duracao_sessao?: number | null;
-  foto_perfil_url?: string | null;
+  foto_perfil?: string | null; // caminho relativo no storage público
   video_url?: string | null;
 }
 

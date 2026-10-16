@@ -14,7 +14,7 @@ import {
 import type { Agendamento, StatusAgendamento } from '../../src/api/types';
 import { Avatar, Badge, EmptyState, GradientButton, Skeleton } from '../../src/ui';
 import { colors, font, radius, shadow, spacing } from '../../src/theme';
-import { capitalizar } from '../../src/format';
+import { capitalizar, storageUrl } from '../../src/format';
 
 const statusInfo: Record<StatusAgendamento, { label: string; tone: 'primary' | 'success' | 'warning' | 'danger' | 'muted' }> = {
   pendente: { label: 'Aguardando pagamento', tone: 'warning' },
@@ -70,7 +70,7 @@ function SessionCard({
   return (
     <View style={s.card}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-        <Avatar name={session.psicologo?.user?.name ?? 'P'} size={46} />
+        <Avatar name={session.psicologo?.user?.name ?? 'P'} size={46} uri={storageUrl(session.psicologo?.perfil?.foto_perfil)} />
         <View style={{ flex: 1 }}>
           <Text style={s.name}>{session.psicologo?.user?.name ?? 'Psicólogo'}</Text>
           {start && (

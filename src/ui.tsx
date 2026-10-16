@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -112,7 +113,16 @@ export const Badge: React.FC<{ label: string; tone?: Tone }> = ({ label, tone = 
   </View>
 );
 
-export const Avatar: React.FC<{ name: string; size?: number }> = ({ name, size = 44 }) => {
+export const Avatar: React.FC<{ name: string; size?: number; uri?: string | null }> = ({
+  name,
+  size = 44,
+  uri,
+}) => {
+  const [falhou, setFalhou] = useState(false);
+  const box = { width: size, height: size, borderRadius: size / 2 };
+  if (uri && !falhou) {
+    return <Image source={{ uri }} style={[s.avatar, box]} onError={() => setFalhou(true)} />;
+  }
   const initials = name
     .split(' ')
     .map((n) => n[0])
@@ -121,7 +131,7 @@ export const Avatar: React.FC<{ name: string; size?: number }> = ({ name, size =
     .join('')
     .toUpperCase();
   return (
-    <View style={[s.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={[s.avatar, box]}>
       <Text style={[s.avatarText, { fontSize: size * 0.38 }]}>{initials || '?'}</Text>
     </View>
   );
