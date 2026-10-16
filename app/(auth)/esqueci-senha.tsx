@@ -3,10 +3,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../src/api/client';
-import { GradientButton, Input, OutlineButton } from '../../src/ui';
+import { GradientButton, Input, OutlineButton, useTopPad } from '../../src/ui';
 import { colors, font, spacing } from '../../src/theme';
 
 export default function ForgotPasswordScreen() {
+  const topPad = useTopPad();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[s.container, { paddingTop: topPad }]} keyboardShouldPersistTaps="handled">
       <Pressable onPress={() => router.back()} hitSlop={10} style={s.back}>
         <Ionicons name="arrow-back" size={22} color={colors.text} />
       </Pressable>
@@ -66,7 +67,7 @@ export default function ForgotPasswordScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flexGrow: 1, padding: spacing.xl, paddingTop: 64 },
+  container: { flexGrow: 1, padding: spacing.xl },
   back: {
     width: 42,
     height: 42,

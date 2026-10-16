@@ -35,7 +35,9 @@ export class ApiError extends Error {
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = await getToken();
-  const res = await fetch(`${BASE_URL}${path}`, {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -44,12 +46,17 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+  } catch {
+    throw new ApiError(0, 'Sem conexão com a internet. Verifique e tente novamente.', {});
+  }
 
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    // 500 traz a mensagem interna do servidor (às vezes em inglês): não mostrar ao paciente.
     const message =
-      (data as { message?: string })?.message ?? `Erro ${res.status}. Tente novamente.`;
+      (res.status !== 500 && (data as { message?: string })?.message) ||
+      'Algo deu errado do nosso lado. Tente novamente em instantes.';
     throw new ApiError(res.status, message, data);
   }
 

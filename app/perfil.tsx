@@ -4,21 +4,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../src/api/client';
 import { useAuth } from '../src/context/auth';
 import { Avatar, Badge, Card, GradientButton, Input, OutlineButton } from '../src/ui';
+import { mascaraTelefone } from '../src/format';
 import { colors, font, spacing } from '../src/theme';
 
 export default function ProfileScreen() {
   const { user, logout, refreshUser } = useAuth();
   const [resending, setResending] = useState(false);
   const [nome, setNome] = useState(user?.name ?? '');
-  const [telefone, setTelefone] = useState(user?.paciente?.telefone ?? '');
+  const [telefone, setTelefone] = useState(mascaraTelefone(user?.paciente?.telefone));
   const [salvando, setSalvando] = useState(false);
-  const mudou = nome.trim() !== (user?.name ?? '') || telefone.trim() !== (user?.paciente?.telefone ?? '');
+  const mudou = nome.trim() !== (user?.name ?? '') || telefone !== mascaraTelefone(user?.paciente?.telefone);
 
   const salvar = async () => {
     if (!nome.trim()) return Alert.alert('Nome vazio', 'Informe seu nome.');
     try {
       setSalvando(true);
-      await api.put('/paciente/perfil', { name: nome.trim(), telefone: telefone.trim() || null });
+      await api.put('/paciente/perfil', { name: nome.trim(), telefone: telefone.replace(/\D/g, '') || null });
       await refreshUser();
       Alert.alert('Pronto', 'Seus dados foram atualizados.');
     } catch (e: any) {
@@ -76,7 +77,7 @@ export default function ProfileScreen() {
           placeholder="(00) 00000-0000"
           keyboardType="phone-pad"
           value={telefone}
-          onChangeText={setTelefone}
+          onChangeText={(v) => setTelefone(mascaraTelefone(v))}
           autoComplete="tel"
         />
         <View style={s.row}>

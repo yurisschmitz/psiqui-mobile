@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Alert,
+  Linking,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,8 +13,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/auth';
-import { GradientButton, Input } from '../../src/ui';
+import type { Genero } from '../../src/api/types';
+import { GradientButton, Input, useTopPad } from '../../src/ui';
+import { mascaraTelefone } from '../../src/format';
 import { colors, font, radius, spacing } from '../../src/theme';
+
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://psiqui.com.br';
 
 /** Máscara simples dd/mm/aaaa enquanto digita. */
 function maskDate(v: string): string {
@@ -35,6 +40,7 @@ function toISODate(br: string): string | null {
 }
 
 export default function RegisterScreen() {
+  const topPad = useTopPad();
   const router = useRouter();
   const { register } = useAuth();
 
@@ -44,7 +50,8 @@ export default function RegisterScreen() {
   const [confirm, setConfirm] = useState('');
   const [nascimento, setNascimento] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [genero, setGenero] = useState<'M' | 'F' | ''>('');
+  const [genero, setGenero] = useState<Genero | ''>('');
+  const [aceite, setAceite] = useState(false);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -78,7 +85,7 @@ export default function RegisterScreen() {
         email: email.trim(),
         password,
         data_nascimento: iso,
-        telefone: telefone.trim() || undefined,
+        telefone: telefone.replace(/\D/g, '') || undefined,
         genero,
       });
       Alert.alert(
@@ -95,7 +102,7 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[s.container, { paddingTop: topPad }]} keyboardShouldPersistTaps="handled">
         <Pressable onPress={() => router.back()} hitSlop={10} style={s.back}>
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
@@ -147,16 +154,19 @@ export default function RegisterScreen() {
             placeholder="(11) 99999-9999"
             keyboardType="phone-pad"
             value={telefone}
-            onChangeText={setTelefone}
+            onChangeText={(v) => setTelefone(mascaraTelefone(v))}
           />
 
           <View style={{ gap: 6 }}>
             <Text style={s.label}>Gênero</Text>
-            <View style={{ flexDirection: 'row', gap: spacing.md }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
               {(
                 [
-                  { v: 'M', label: 'Masculino' },
                   { v: 'F', label: 'Feminino' },
+                  { v: 'M', label: 'Masculino' },
+                  { v: 'nao_binario', label: 'Não-binário' },
+                  { v: 'outro', label: 'Outro' },
+                  { v: 'prefiro_nao_informar', label: 'Prefiro não responder' },
                 ] as const
               ).map(({ v, label }) => (
                 <Pressable
@@ -170,11 +180,22 @@ export default function RegisterScreen() {
             </View>
           </View>
 
-          <GradientButton title="Criar conta" onPress={handleRegister} loading={loading} />
+          <Pressable onPress={() => setAceite((a) => !a)} style={s.aceite} hitSlop={6}>
+            <Ionicons name={aceite ? 'checkbox' : 'square-outline'} size={22} color={aceite ? colors.primary : colors.muted} />
+            <Text style={s.aceiteText}>
+              Li e concordo com os{' '}
+              <Text style={s.link} onPress={() => Linking.openURL(`${WEB_URL}/termos`)}>
+                Termos de Uso
+              </Text>{' '}
+              e a{' '}
+              <Text style={s.link} onPress={() => Linking.openURL(`${WEB_URL}/privacidade`)}>
+                Política de Privacidade
+              </Text>
+              .
+            </Text>
+          </Pressable>
 
-          <Text style={s.terms}>
-            Ao criar a conta você concorda com os Termos de Uso e a Política de Privacidade da Psiqui.
-          </Text>
+          <GradientButton title="Criar conta" onPress={handleRegister} loading={loading} disabled={!aceite} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -182,7 +203,7 @@ export default function RegisterScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { padding: spacing.xl, paddingTop: 64, paddingBottom: 48 },
+  container: { padding: spacing.xl, paddingBottom: 48 },
   back: {
     width: 42,
     height: 42,
@@ -196,8 +217,8 @@ const s = StyleSheet.create({
   subtitle: { fontSize: font.body, color: colors.muted, marginTop: 4 },
   label: { fontSize: font.small, fontWeight: '600', color: colors.text },
   chip: {
-    flex: 1,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
     borderRadius: radius.lg,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -207,5 +228,7 @@ const s = StyleSheet.create({
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   chipText: { color: colors.muted, fontWeight: '600' },
   chipTextActive: { color: colors.primary },
-  terms: { fontSize: font.tiny, color: colors.muted, textAlign: 'center', marginTop: spacing.sm },
+  aceite: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  aceiteText: { flex: 1, fontSize: font.small, color: colors.muted, lineHeight: 20 },
+  link: { color: colors.primary, fontWeight: '600' },
 });

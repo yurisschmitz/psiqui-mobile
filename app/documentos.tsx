@@ -7,7 +7,7 @@ import { useClinicalDocuments } from '../src/api/hooks';
 import { useAuth } from '../src/context/auth';
 import type { DocumentoClinico, TipoDocumentoClinico } from '../src/api/types';
 import { exportClinicalDocument } from '../src/utils/documentPdf';
-import { Badge, EmptyState, GradientButton, OutlineButton, Skeleton } from '../src/ui';
+import { Badge, EmptyState, GradientButton, OutlineButton, Skeleton, useTopPad } from '../src/ui';
 import { colors, font, radius, shadow, spacing } from '../src/theme';
 
 const tipoLabel: Record<TipoDocumentoClinico, string> = {
@@ -25,6 +25,7 @@ const tipoIcon: Record<TipoDocumentoClinico, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function DocumentsScreen() {
+  const topPad = useTopPad(spacing.sm);
   const { data: docs, isLoading, refetch, isRefetching } = useClinicalDocuments();
   const { user } = useAuth();
   const [viewing, setViewing] = useState<DocumentoClinico | null>(null);
@@ -99,7 +100,7 @@ export default function DocumentsScreen() {
       <Modal visible={!!viewing} animationType="slide" onRequestClose={() => setViewing(null)}>
         {viewing && (
           <View style={{ flex: 1, backgroundColor: colors.bg }}>
-            <View style={s.modalHeader}>
+            <View style={[s.modalHeader, { paddingTop: topPad }]}>
               <Pressable onPress={() => setViewing(null)} hitSlop={10} style={s.closeBtn}>
                 <Ionicons name="close" size={22} color={colors.text} />
               </Pressable>
@@ -181,7 +182,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 56,
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
   },

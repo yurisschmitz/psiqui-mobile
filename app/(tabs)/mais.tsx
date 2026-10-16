@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/auth';
-import { Avatar, Badge, Card } from '../../src/ui';
+import { Avatar, Badge, Card, useTopPad } from '../../src/ui';
 import { colors, font, radius, spacing } from '../../src/theme';
 
 const MENU = [
@@ -18,6 +18,7 @@ const MENU = [
 ] as const;
 
 export default function MoreScreen() {
+  const topPad = useTopPad();
   const router = useRouter();
   const { user, logout } = useAuth();
 
@@ -29,7 +30,7 @@ export default function MoreScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={s.container}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={[s.container, { paddingTop: topPad }]}>
       <Text style={s.title}>Mais</Text>
 
       {/* Cartão do usuário */}
@@ -76,7 +77,7 @@ export default function MoreScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { padding: spacing.xl, paddingTop: 64, gap: spacing.xl, paddingBottom: 48 },
+  container: { padding: spacing.xl, gap: spacing.xl, paddingBottom: 48 },
   title: { fontSize: font.title, fontWeight: '800', color: colors.text },
   name: { fontWeight: '700', fontSize: font.body, color: colors.text },
   email: { color: colors.muted, fontSize: font.small, marginTop: 2 },

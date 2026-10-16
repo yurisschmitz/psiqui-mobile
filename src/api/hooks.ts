@@ -80,6 +80,14 @@ export const useCreateBooking = () => {
 };
 
 // Status LOCAL do pagamento (atualizado pelo webhook do Asaas) — polling do PIX.
+/** Sem gateway (configurado=false) o back confirma a sessão sem cobrar. */
+export const usePaymentConfig = () =>
+  useQuery({
+    queryKey: ['pagamento-config'],
+    queryFn: () => api.get<{ configurado: boolean }>('/pagamento/config'),
+    staleTime: 5 * 60_000,
+  });
+
 export const usePaymentStatus = (paymentId: string | null, enabled: boolean) =>
   useQuery({
     queryKey: ['pagamento-status', paymentId],

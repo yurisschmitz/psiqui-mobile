@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { api, getToken, setToken } from '../api/client';
-import type { User } from '../api/types';
+import type { Genero, User } from '../api/types';
 
 interface RegisterData {
   nome: string;
@@ -8,7 +8,7 @@ interface RegisterData {
   password: string;
   data_nascimento: string; // YYYY-MM-DD
   telefone?: string;
-  genero: 'M' | 'F';
+  genero: Genero;
 }
 
 interface AuthContextValue {

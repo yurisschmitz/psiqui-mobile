@@ -5,6 +5,9 @@ export interface Role {
   name: 'paciente' | 'psicologo' | 'admin';
 }
 
+/** Mesmos valores de Paciente::GENEROS no back. */
+export type Genero = 'M' | 'F' | 'nao_binario' | 'outro' | 'prefiro_nao_informar';
+
 export interface User {
   id: number;
   name: string;
@@ -27,7 +30,7 @@ export interface PsicologoPerfil {
   idiomas?: string | null;
   valor_sessao?: number | null;
   duracao_sessao?: number | null;
-  foto_perfil_url?: string | null;
+  foto_perfil?: string | null; // caminho relativo no storage público
   video_url?: string | null;
 }
 
