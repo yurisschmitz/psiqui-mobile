@@ -52,7 +52,7 @@ export default function WellnessDiaryScreen() {
   const todayKey = localDateKey(new Date());
   const todayEntry = moods?.find((m) => m.data?.slice(0, 10) === todayKey);
 
-  const [mood, setMood] = useState<HumorTipo>('Neutro');
+  const [mood, setMood] = useState<HumorTipo | null>(null); // nada marcado até o paciente escolher
   const [note, setNote] = useState('');
 
   // Pré-seleciona o humor já registrado hoje (se houver check-in).
@@ -67,9 +67,10 @@ export default function WellnessDiaryScreen() {
   const groups = useMemo(() => groupByMonth(diaryEntries), [diaryEntries]);
 
   const handleSave = () => {
-    if (!note.trim()) return;
+    if (!note.trim() || !mood) return;
     saveMood.mutate(
-      { humor: mood, nota: note.trim() },
+      // O back guarda uma entrada por dia: soma ao texto de hoje em vez de apagá-lo.
+      { humor: mood, nota: todayEntry?.nota ? `${todayEntry.nota.trim()}\n\n${note.trim()}` : note.trim() },
       { onSuccess: () => setNote('') }
     );
   };
@@ -112,20 +113,20 @@ export default function WellnessDiaryScreen() {
             placeholderTextColor={colors.muted}
             style={s.input}
             multiline
-            maxLength={1000}
+            maxLength={todayEntry?.nota ? Math.max(0, 998 - todayEntry.nota.trim().length) : 1000}
             textAlignVertical="top"
           />
 
           {todayEntry?.nota ? (
-            <Text style={s.hint}>Você já registrou hoje. Escrever novamente irá atualizar a entrada.</Text>
+            <Text style={s.hint}>O que você escrever agora será somado à entrada de hoje.</Text>
           ) : null}
 
           <GradientButton
-            title={todayEntry?.nota ? 'Atualizar entrada de hoje' : 'Registrar entrada'}
+            title={todayEntry?.nota ? 'Adicionar à entrada de hoje' : 'Registrar entrada'}
             icon="sparkles"
             onPress={handleSave}
             loading={saveMood.isPending}
-            disabled={!note.trim()}
+            disabled={!note.trim() || !mood}
           />
         </View>
 

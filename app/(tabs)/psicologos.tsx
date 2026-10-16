@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { usePsychologists } from '../../src/api/hooks';
 import type { Psicologo } from '../../src/api/types';
-import { Avatar, Badge, EmptyState, Input, Skeleton } from '../../src/ui';
+import { Avatar, Badge, EmptyState, Input, Skeleton, useTopPad } from '../../src/ui';
 import { colors, font, radius, shadow, spacing } from '../../src/theme';
 import { formatBRL, formatCRP, storageUrl } from '../../src/format';
 
@@ -40,6 +40,7 @@ function PsychologistCard({ p, onPress }: { p: Psicologo; onPress: () => void })
 }
 
 export default function PsychologistsScreen() {
+  const topPad = useTopPad();
   const router = useRouter();
   const [search, setSearch] = useState('');
   const { data, isLoading, refetch, isRefetching } = usePsychologists(search);
@@ -48,7 +49,7 @@ export default function PsychologistsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: topPad }]}>
         <Text style={s.title}>Encontre seu psicólogo</Text>
         <Input
           icon="search-outline"
@@ -89,7 +90,7 @@ export default function PsychologistsScreen() {
 }
 
 const s = StyleSheet.create({
-  header: { paddingTop: 64, padding: spacing.xl, gap: spacing.lg },
+  header: { padding: spacing.xl, gap: spacing.lg },
   title: { fontSize: font.title, fontWeight: '800', color: colors.text },
   card: {
     flexDirection: 'row',

@@ -5,6 +5,7 @@ import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { getToken } from '../../src/api/client';
 import { colors, font, spacing } from '../../src/theme';
+import { useTopPad } from '../../src/ui';
 
 /**
  * Sessão de vídeo (v1): abre a sala da plataforma web dentro do app,
@@ -24,6 +25,7 @@ async function pedirCameraMicrofone(): Promise<boolean> {
 }
 
 export default function VideoSessionScreen() {
+  const topPad = useTopPad(spacing.sm);
   const router = useRouter();
   const { id, nome } = useLocalSearchParams<{ id: string; nome?: string }>();
   const [token, setTokenState] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export default function VideoSessionScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0F172A' }}>
-      <View style={s.topBar}>
+      <View style={[s.topBar, { paddingTop: topPad }]}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={s.closeBtn}>
           <Ionicons name="close" size={22} color="#fff" />
         </Pressable>
@@ -106,7 +108,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 56,
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.lg,
     backgroundColor: '#0F172A',

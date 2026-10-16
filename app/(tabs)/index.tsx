@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -8,7 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../src/context/auth';
 import { useMoods, useNotifications, useSaveMood, useSessions } from '../../src/api/hooks';
 import type { HumorTipo } from '../../src/api/types';
-import { Avatar, Card, SectionTitle } from '../../src/ui';
+import { Avatar, Card, SectionTitle, useTopPad } from '../../src/ui';
 import { MOODS, localDateKey } from '../../src/mood';
 import { brandGradient, colors, font, radius, shadow, spacing } from '../../src/theme';
 import { capitalizar, storageUrl } from '../../src/format';
@@ -21,6 +22,15 @@ const greeting = () => {
 };
 
 export default function HomeScreen() {
+  const topPad = useTopPad();
+  // Ícones claros sobre o degradê só enquanto a aba está visível (as abas ficam montadas).
+  const [focada, setFocada] = React.useState(false);
+  useFocusEffect(
+    React.useCallback(() => {
+      setFocada(true);
+      return () => setFocada(false);
+    }, [])
+  );
   const router = useRouter();
   const { user } = useAuth();
   const { data: moods, refetch: refetchMoods, isRefetching } = useMoods();
@@ -75,8 +85,9 @@ export default function HomeScreen() {
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor={colors.primary} />}
       showsVerticalScrollIndicator={false}
     >
+      {focada && <StatusBar style="light" />}
       {/* Header com gradiente da marca */}
-      <LinearGradient colors={[...brandGradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={[...brandGradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.header, { paddingTop: topPad }]}>
         <View style={s.headerTop}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <Avatar name={user?.name ?? '?'} size={44} />
@@ -236,7 +247,6 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   header: {
-    paddingTop: 64,
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xl,
     borderBottomLeftRadius: 28,
@@ -249,14 +259,15 @@ const s = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
+    overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bellBadge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: 0,
+    right: 0,
     minWidth: 18,
     height: 18,
     borderRadius: 9,

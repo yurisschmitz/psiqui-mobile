@@ -12,7 +12,7 @@ import {
   useSessions,
 } from '../../src/api/hooks';
 import type { Agendamento, StatusAgendamento } from '../../src/api/types';
-import { Avatar, Badge, EmptyState, GradientButton, Skeleton } from '../../src/ui';
+import { Avatar, Badge, EmptyState, GradientButton, Skeleton, useTopPad } from '../../src/ui';
 import { colors, font, radius, shadow, spacing } from '../../src/theme';
 import { capitalizar, storageUrl } from '../../src/format';
 
@@ -126,8 +126,14 @@ function RescheduleModal({ session, onClose }: { session: Agendamento | null; on
     .sort((a, b) => a.data_hora_inicio.localeCompare(b.data_hora_inicio))
     .slice(0, 30);
 
-  const escolher = (agendaId: number, quando: string) =>
-    Alert.alert('Trocar o horário?', `A sessão passa para ${quando}. O pagamento continua valendo.`, [
+  const escolher = (agendaId: number, quando: string, inicio: string) => {
+    // Trocar para dentro das 48h tira o direito ao estorno se cancelar depois: avisar antes.
+    const semEstorno =
+      session?.pagamento?.status === 'pago' && new Date(inicio).getTime() - Date.now() <= ESTORNO_ATE;
+    const aviso = semEstorno
+      ? '\n\nAtenção: o novo horário é daqui a menos de 48 horas. Se depois precisar cancelar, o valor não será devolvido.'
+      : '';
+    Alert.alert('Trocar o horário?', `A sessão passa para ${quando}. O pagamento continua valendo.${aviso}`, [
       { text: 'Voltar', style: 'cancel' },
       {
         text: 'Confirmar',
@@ -144,6 +150,7 @@ function RescheduleModal({ session, onClose }: { session: Agendamento | null; on
           ),
       },
     ]);
+  };
 
   return (
     <Modal visible={!!session} transparent animationType="slide" onRequestClose={onClose}>
@@ -165,7 +172,7 @@ function RescheduleModal({ session, onClose }: { session: Agendamento | null; on
                 return (
                   <Pressable
                     disabled={reschedule.isPending}
-                    onPress={() => escolher(item.id, quando)}
+                    onPress={() => escolher(item.id, quando, item.data_hora_inicio)}
                     style={({ pressed }) => [s.slot, pressed && { borderColor: colors.primary }]}
                   >
                     <Ionicons name="calendar-outline" size={16} color={colors.primary} />
@@ -185,6 +192,7 @@ function RescheduleModal({ session, onClose }: { session: Agendamento | null; on
 }
 
 export default function SessionsScreen() {
+  const topPad = useTopPad();
   const router = useRouter();
   const { data: sessions, isLoading, refetch, isRefetching } = useSessions();
   const createReview = useCreateReview();
@@ -261,7 +269,7 @@ export default function SessionsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: topPad }]}>
         <Text style={s.title}>Suas sessões</Text>
         <View style={s.tabs}>
           {(
@@ -295,6 +303,7 @@ export default function SessionsScreen() {
               icon="calendar-outline"
               title={tab === 'proximas' ? 'Nenhuma sessão agendada' : 'Nenhuma sessão no histórico'}
               subtitle={tab === 'proximas' ? 'Encontre um psicólogo e agende sua primeira sessão.' : undefined}
+              action={tab === 'proximas' ? { title: 'Encontrar um psicólogo', onPress: () => router.push('/(tabs)/psicologos') } : undefined}
             />
           }
           renderItem={({ item }) => (
@@ -352,7 +361,7 @@ export default function SessionsScreen() {
 }
 
 const s = StyleSheet.create({
-  header: { paddingTop: 64, padding: spacing.xl, gap: spacing.lg },
+  header: { padding: spacing.xl, gap: spacing.lg },
   title: { fontSize: font.title, fontWeight: '800', color: colors.text },
   tabs: { flexDirection: 'row', backgroundColor: '#E9EEF6', borderRadius: radius.lg, padding: 4 },
   tab: { flex: 1, paddingVertical: 10, borderRadius: radius.md, alignItems: 'center' },

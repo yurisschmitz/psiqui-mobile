@@ -21,4 +21,12 @@ export const formatBRL = (v: number | string | null | undefined): string =>
   `R$ ${Number(v ?? VALOR_SESSAO_PADRAO).toFixed(2).replace('.', ',')}`;
 
 /** Só a primeira letra em maiúscula ("quinta, 15 de out"), sem o Title Case do textTransform. */
+/** (65) 99999-9999 enquanto digita; aceita fixo (65) 3333-4444. */
+export const mascaraTelefone = (v?: string | null): string => {
+  const d = (v ?? '').replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  const meio = d.length === 11 ? 7 : 6;
+  return `(${d.slice(0, 2)}) ${d.slice(2, meio)}${d.length > meio ? '-' + d.slice(meio) : ''}`;
+};
+
 export const capitalizar = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);

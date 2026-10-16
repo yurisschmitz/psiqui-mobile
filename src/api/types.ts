@@ -5,6 +5,9 @@ export interface Role {
   name: 'paciente' | 'psicologo' | 'admin';
 }
 
+/** Mesmos valores de Paciente::GENEROS no back. */
+export type Genero = 'M' | 'F' | 'nao_binario' | 'outro' | 'prefiro_nao_informar';
+
 export interface User {
   id: number;
   name: string;

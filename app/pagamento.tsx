@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import { useCreateBooking, usePaymentStatus } from '../src/api/hooks';
+import { useCreateBooking, usePaymentConfig, usePaymentStatus } from '../src/api/hooks';
 import type { Cartao } from '../src/api/types';
 import { Card, GradientButton, Input, Loading, OutlineButton } from '../src/ui';
 import { colors, font, radius, spacing } from '../src/theme';
@@ -42,6 +42,8 @@ export default function PaymentScreen() {
   const pendente = useRef<{ tipo: Tipo; cartao?: Cartao } | null>(null);
 
   const createBooking = useCreateBooking();
+  const { data: config } = usePaymentConfig();
+  const semCobranca = config?.configurado === false;
   const { data: status } = usePaymentStatus(paymentId, step === 'pix' || step === 'processing');
 
   useEffect(() => {
@@ -132,6 +134,14 @@ export default function PaymentScreen() {
       {/* Escolha do método: tocar já segue (PIX cobra; cartão abre o formulário) */}
       {step === 'method' && (
         <>
+          {semCobranca ? (
+            <GradientButton
+              title="Confirmar agendamento"
+              onPress={() => cobrar('pix')}
+              loading={createBooking.isPending}
+            />
+          ) : (
+          <>
           <Text style={s.question}>Como você quer pagar?</Text>
           <View style={{ gap: spacing.md }}>
             {(
@@ -162,10 +172,12 @@ export default function PaymentScreen() {
             ))}
           </View>
           {createBooking.isPending && <Loading />}
+          </>
+          )}
           <Text style={s.secure}>
             Reagendar é grátis até 24 horas antes. Cancelando com mais de 48 horas, o valor volta integralmente.
           </Text>
-          <Text style={s.secure}>🔒 Pagamento processado com segurança pelo Asaas</Text>
+          {!semCobranca && <Text style={s.secure}>🔒 Pagamento processado com segurança pelo Asaas</Text>}
         </>
       )}
 

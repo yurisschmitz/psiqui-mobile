@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -25,6 +26,7 @@ function groupByLocalDay(slots: Agenda[]) {
 }
 
 export default function PsychologistDetailScreen() {
+  const { bottom } = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const psicologoId = Number(id);
@@ -167,7 +169,7 @@ export default function PsychologistDetailScreen() {
 
       {/* Barra fixa de agendamento */}
       {selected && (
-        <View style={s.bottomBar}>
+        <View style={[s.bottomBar, { paddingBottom: spacing.lg + bottom }]}>
           <View style={{ flex: 1 }}>
             <Text style={s.bottomWhen}>
               {format(new Date(selected.data_hora_inicio), "dd/MM 'às' HH:mm")}
@@ -226,7 +228,6 @@ const s = StyleSheet.create({
     gap: spacing.md,
     backgroundColor: colors.card,
     padding: spacing.lg,
-    paddingBottom: 28,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },

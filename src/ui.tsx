@@ -11,6 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { brandGradient, colors, font, radius, shadow, spacing } from './theme';
 
@@ -26,8 +27,8 @@ interface ButtonProps {
 
 /** Botão primário com o gradiente da marca. */
 export const GradientButton: React.FC<ButtonProps> = ({ title, onPress, loading, disabled, icon, style }) => (
-  <Pressable onPress={onPress} disabled={disabled || loading} style={({ pressed }) => [{ opacity: pressed || disabled ? 0.75 : 1 }, style]}>
-    <LinearGradient colors={[...brandGradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[s.btn, shadow.brand]}>
+  <Pressable onPress={onPress} disabled={disabled || loading} style={({ pressed }) => [{ opacity: disabled ? 0.45 : pressed ? 0.75 : 1 }, style]}>
+    <LinearGradient colors={[...brandGradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[s.btn, !disabled && shadow.brand]}>
       {loading ? (
         <ActivityIndicator color="#fff" />
       ) : (
@@ -97,6 +98,9 @@ export const SectionTitle: React.FC<{ title: string; action?: React.ReactNode }>
   </View>
 );
 
+/** Espaço do topo = barra de status real do aparelho (notch/câmera variam) + respiro. */
+export const useTopPad = (extra = spacing.lg) => useSafeAreaInsets().top + extra;
+
 // ---------- Badges / Avatar ----------
 type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'muted';
 const toneStyles: Record<Tone, { bg: string; fg: string }> = {
@@ -138,17 +142,19 @@ export const Avatar: React.FC<{ name: string; size?: number; uri?: string | null
 };
 
 // ---------- Estados ----------
-export const EmptyState: React.FC<{ icon: keyof typeof Ionicons.glyphMap; title: string; subtitle?: string }> = ({
-  icon,
-  title,
-  subtitle,
-}) => (
+export const EmptyState: React.FC<{
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle?: string;
+  action?: { title: string; onPress: () => void };
+}> = ({ icon, title, subtitle, action }) => (
   <View style={s.empty}>
     <View style={s.emptyIcon}>
       <Ionicons name={icon} size={30} color={colors.primary} />
     </View>
     <Text style={s.emptyTitle}>{title}</Text>
     {subtitle ? <Text style={s.emptySubtitle}>{subtitle}</Text> : null}
+    {action ? <GradientButton title={action.title} onPress={action.onPress} style={{ marginTop: spacing.lg, alignSelf: 'stretch' }} /> : null}
   </View>
 );
 

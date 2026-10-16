@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSendSupport } from '../src/api/hooks';
 import { Card, GradientButton, Input } from '../src/ui';
@@ -63,11 +63,12 @@ export default function SupportScreen() {
       <Text style={s.section}>Fale com a equipe</Text>
       <Card style={{ gap: spacing.md }}>
         <Input label="Assunto" placeholder="Ex.: dúvida sobre pagamento" value={assunto} onChangeText={setAssunto} maxLength={150} />
-        <TextInput
+        <Input
+          label="Mensagem"
           style={s.textarea}
           placeholder="Conte com detalhes o que aconteceu"
-          placeholderTextColor={colors.muted}
           multiline
+          textAlignVertical="top"
           value={mensagem}
           onChangeText={setMensagem}
         />
@@ -91,14 +92,6 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   question: { flex: 1, fontWeight: '700', color: colors.text },
   answer: { color: colors.muted, lineHeight: 20 },
-  textarea: {
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    minHeight: 120,
-    textAlignVertical: 'top',
-    color: colors.text,
-  },
+  textarea: { minHeight: 120, paddingTop: spacing.md },
   hint: { color: colors.muted, fontSize: font.tiny, textAlign: 'center' },
 });

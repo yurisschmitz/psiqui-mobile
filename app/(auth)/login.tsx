@@ -12,11 +12,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../src/context/auth';
-import { GradientButton, Input } from '../../src/ui';
+import { GradientButton, Input, useTopPad } from '../../src/ui';
 import { brandGradient, colors, font, radius, spacing } from '../../src/theme';
 
 export default function LoginScreen() {
+  const topPad = useTopPad(spacing.xxl);
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -44,7 +46,8 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {/* Cabeçalho da marca */}
-        <LinearGradient colors={[...brandGradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <LinearGradient colors={[...brandGradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.hero, { paddingTop: topPad }]}>
+          <StatusBar style="light" />
           <View style={s.logoWrap}>
             <Image source={require('../../assets/images/psiqui-logo.png')} style={s.logo} resizeMode="contain" />
           </View>
@@ -63,6 +66,9 @@ export default function LoginScreen() {
               placeholder="seu@email.com"
               autoCapitalize="none"
               keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
               value={email}
               onChangeText={setEmail}
             />
@@ -73,6 +79,10 @@ export default function LoginScreen() {
               secureTextEntry={!show}
               rightIcon={show ? 'eye-off-outline' : 'eye-outline'}
               onRightIconPress={() => setShow(!show)}
+              autoComplete="current-password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
               value={password}
               onChangeText={setPassword}
             />
@@ -98,7 +108,6 @@ export default function LoginScreen() {
 
 const s = StyleSheet.create({
   hero: {
-    paddingTop: 80,
     paddingBottom: 40,
     alignItems: 'center',
     borderBottomLeftRadius: 32,
