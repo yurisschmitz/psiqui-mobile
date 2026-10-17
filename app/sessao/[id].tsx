@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { getToken } from '../../src/api/client';
+import { isPsicologo, useAuth } from '../../src/context/auth';
 import { colors, font, spacing } from '../../src/theme';
 import { useTopPad } from '../../src/ui';
 
@@ -32,6 +33,7 @@ export default function VideoSessionScreen() {
   const [loading, setLoading] = useState(true);
   const [semPermissao, setSemPermissao] = useState(false);
   const saiu = useRef(false);
+  const psi = isPsicologo(useAuth().user);
 
   useEffect(() => {
     Promise.all([getToken(), pedirCameraMicrofone()]).then(([t, ok]) => {
@@ -41,8 +43,8 @@ export default function VideoSessionScreen() {
     });
   }, []);
 
-  const patientName = encodeURIComponent(nome ?? 'Paciente');
-  const url = `${WEB_URL}/video-session-patient/${id}/${patientName}`;
+  // A web tem uma sala por papel; o nome no fim da URL é o da outra pessoa.
+  const url = `${WEB_URL}/video-session-${psi ? 'psico' : 'patient'}/${id}/${encodeURIComponent(nome ?? 'Sessão')}`;
 
   // Injeta o token Sanctum no localStorage da SPA antes do carregamento
   // __PSIQUI_APP__ faz a página trocar "navegador" por "celular" nos avisos.
@@ -57,7 +59,7 @@ export default function VideoSessionScreen() {
           <Ionicons name="close" size={22} color="#fff" />
         </Pressable>
         <Text style={s.title} numberOfLines={1}>
-          Sessão com {nome ?? 'seu psicólogo'}
+          Sessão com {nome ?? (psi ? 'o paciente' : 'seu psicólogo')}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -85,7 +87,7 @@ export default function VideoSessionScreen() {
           mediaCapturePermissionGrantType="grant"
           // Ao encerrar, a página web volta ao painel: aqui isso significa fechar a tela.
           onNavigationStateChange={(nav) => {
-            if (!saiu.current && /\/(patient-dashboard|login)(\/|$|\?)/.test(nav.url)) {
+            if (!saiu.current && /\/(patient-dashboard|psychologist-dashboard|login)(\/|$|\?)/.test(nav.url)) {
               saiu.current = true;
               router.back();
             }

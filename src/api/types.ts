@@ -75,12 +75,16 @@ export interface Agendamento {
   psicologo?: Psicologo;
   pagamento?: Pagamento;
   avaliacao?: Avaliacao | null;
+  /** Só na visão do psicólogo (/psicologo/agendamentos). */
+  paciente?: { id: number; user_id: number; foto_perfil?: string | null; user: { id: number; name: string; email?: string } };
 }
 
 export interface Pagamento {
   id: number;
   agendamento_id: number;
   valor: number | string;
+  /** Parte do psicólogo após o split (visão do psicólogo). */
+  valor_psicologo_centavos?: number | null;
   tipo: string;
   status: 'pendente' | 'pago' | 'cancelado' | 'estornado';
   data_pagamento?: string | null;

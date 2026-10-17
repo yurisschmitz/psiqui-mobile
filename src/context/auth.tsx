@@ -52,10 +52,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setToken(res.access_token);
       const me = await api.get<User>('/me');
 
-      // Este app é exclusivo do paciente
-      if (!me.roles?.some((r) => r.name === 'paciente')) {
+      // Paciente e psicólogo usam o app; o painel admin fica só na web.
+      if (!me.roles?.some((r) => r.name === 'paciente' || r.name === 'psicologo')) {
         await setToken(null);
-        throw new Error('Este aplicativo é exclusivo para pacientes. Psicólogos devem usar a plataforma web.');
+        throw new Error('Esta conta é de administração: use a plataforma web.');
       }
 
       setUser(me);
@@ -93,6 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+export const isPsicologo = (u: User | null) => !!u?.roles?.some((r) => r.name === 'psicologo');
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
