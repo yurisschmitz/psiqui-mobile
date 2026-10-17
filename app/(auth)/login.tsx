@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Linking,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -16,6 +17,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../src/context/auth';
 import { GradientButton, Input, useTopPad } from '../../src/ui';
 import { brandGradient, colors, font, radius, spacing } from '../../src/theme';
+
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://psiqui.com.br';
 
 export default function LoginScreen() {
   const topPad = useTopPad(spacing.xxl);
@@ -100,6 +103,14 @@ export default function LoginScreen() {
               <Text style={[s.link, { textAlign: 'center' }]}>Cadastre-se</Text>
             </Pressable>
           </View>
+          {/* Psicólogo entra com a conta do site; o cadastro (documentos/CRP) é só na web. */}
+          <Text style={s.psi}>
+            Psicólogo? Entre com a conta do site ou{' '}
+            <Text style={s.psiLink} onPress={() => Linking.openURL(`${WEB_URL}/register`)}>
+              cadastre-se por lá
+            </Text>
+            .
+          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -129,5 +140,7 @@ const s = StyleSheet.create({
   title: { fontSize: font.title, fontWeight: '800', color: colors.text },
   subtitle: { fontSize: font.body, color: colors.muted, marginTop: 4 },
   link: { color: colors.primary, fontWeight: '600', alignSelf: 'flex-end' },
+  psi: { color: colors.muted, textAlign: 'center', marginTop: spacing.lg, fontSize: font.small },
+  psiLink: { color: colors.primary, fontWeight: '600' },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xxl, alignItems: 'center' },
 });

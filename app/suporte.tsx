@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSendSupport } from '../src/api/hooks';
+import { isPsicologo, useAuth } from '../src/context/auth';
 import { Card, GradientButton, Input } from '../src/ui';
 import { colors, font, radius, spacing } from '../src/theme';
 
@@ -26,7 +27,31 @@ const FAQ = [
   },
 ];
 
+const FAQ_PSI = [
+  {
+    p: 'Como libero horários?',
+    r: 'Na aba "Agenda", toque em "Liberar", escolha os dias e os horários de início. Cada horário vira uma sessão online de 50 min. Dá para repetir nas semanas seguintes.',
+  },
+  {
+    p: 'Quando recebo pelas sessões?',
+    r: 'O valor de cada sessão paga libera para saque quando ela termina. Em "Financeiro", você saca via PIX uma vez por semana.',
+  },
+  {
+    p: 'E se eu precisar cancelar?',
+    r: 'Cancele pelo cartão da sessão na "Agenda". O paciente recebe o valor de volta integralmente e é avisado por e-mail.',
+  },
+  {
+    p: 'O que é "Registre o atendimento"?',
+    r: 'Depois do horário, marque a sessão como "Realizada" ou "Faltou". Falta não gera estorno ao paciente.',
+  },
+  {
+    p: 'Onde emito laudos, atestados e recibos?',
+    r: 'Pelo painel do site (Mais → Painel completo no site). O paciente recebe o documento no app dele.',
+  },
+];
+
 export default function SupportScreen() {
+  const faq = isPsicologo(useAuth().user) ? FAQ_PSI : FAQ;
   const enviar = useSendSupport();
   const [aberta, setAberta] = useState<number | null>(null);
   const [assunto, setAssunto] = useState('');
@@ -49,7 +74,7 @@ export default function SupportScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.xl, gap: spacing.lg }}>
       <Text style={s.section}>Perguntas frequentes</Text>
       <View style={s.faq}>
-        {FAQ.map(({ p, r }, i) => (
+        {faq.map(({ p, r }, i) => (
           <Pressable key={p} onPress={() => setAberta(aberta === i ? null : i)} style={[s.item, i > 0 && s.divider]}>
             <View style={s.row}>
               <Text style={s.question}>{p}</Text>

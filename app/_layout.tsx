@@ -4,7 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from '../src/context/auth';
+import { AuthProvider, isPsicologo, useAuth } from '../src/context/auth';
 import { colors } from '../src/theme';
 
 const queryClient = new QueryClient({
@@ -22,11 +22,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
     const inAuthGroup = segments[0] === '(auth)';
+    const psi = isPsicologo(user);
 
     if (!user && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (user && inAuthGroup) {
-      router.replace('/(tabs)');
+    } else if (user && (inAuthGroup || (psi ? segments[0] === '(tabs)' : segments[0] === 'psi'))) {
+      // Cada papel tem a sua área: psicólogo em /psi, paciente nas abas da raiz.
+      router.replace(psi ? '/psi' : '/(tabs)');
     }
   }, [user, loading, segments, router]);
 
@@ -58,6 +60,7 @@ export default function RootLayout() {
           >
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="psi" />
             <Stack.Screen name="psicologo/[id]" options={{ headerShown: true, headerTitle: 'Psicólogo' }} />
             <Stack.Screen name="pagamento" options={{ headerShown: true, headerTitle: 'Pagamento' }} />
             <Stack.Screen name="sessao/[id]" options={{ headerShown: false }} />
